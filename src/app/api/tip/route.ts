@@ -1,0 +1,48 @@
+import { NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/supabase";
+import { checkRateLimit } from "@/lib/ratelimit";
+import { callClaude } from "@/lib/claude";
+
+export async function GET(request: Request) {
+  const auth = await getAuthenticatedUser(request);
+  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { user, supabase } = auth;
+  const rateCheck = await checkRateLimit(user.id, "general");
+  if (!rateCheck.success) return rateCheck.response!;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("daily_tip_cache, major_interest, grade")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+
+  const today = new Date().toISOString().split("T")[0];
+
+  // Return cached tip if from today
+  if (profile.daily_tip_cache?.date === today) {
+    return NextResponse.json({ tip: profile.daily_tip_cache.tip });
+  }
+
+  // Generate new tip
+  try {
+    const result = await callClaude(
+      "You are a college admissions tip generator. Give one brief, actionable tip (1-2 sentences max). Be specific and encouraging.",
+      `Generate a tip for a ${profile.grade || "high school"} student interested in ${profile.major_interest || "college"}. Today's date: ${today}. Make it unique and seasonal if relevant.`
+    );
+
+    const tip = result.trim().slice(0, 300);
+    const tipCache = { tip, date: today };
+
+    await supabase
+      .from("profiles")
+      .update({ daily_tip_cache: tipCache })
+      .eq("id", user.id);
+
+    return NextResponse.json({ tip });
+  } catch {
+    return NextResponse.json({ tip: "Focus on quality over quantity — one meaningful activity beats five surface-level ones." });
+  }
+}
