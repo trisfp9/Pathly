@@ -83,7 +83,7 @@ export default function OnboardingPage() {
     Object.entries(fields).forEach(([key, value]) => {
       if (key !== "major_other") updates[key] = value;
     });
-    await supabase.from("profiles").update(updates).eq("id", user.id);
+    await supabase.from("profiles").upsert({ id: user.id, ...updates });
   };
 
   const next = async () => {

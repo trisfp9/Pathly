@@ -1,41 +1,21 @@
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
+import { createClient } from "@supabase/supabase-js";
 
-// Lazy initialization to avoid build-time errors with placeholder env vars
-let _redis: Redis | null = null;
-function getRedis() {
-  if (!_redis) {
-    _redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    });
-  }
-  return _redis;
-}
+// Simple in-memory rate limiter — no external dependencies needed
+// For a small app this is perfectly fine. If you scale to multiple server
+// instances behind a load balancer, you'd switch to Redis or a DB-based approach.
 
-type RateLimitConfig = { limit: number; window: string; prefix: string };
+type RateLimitConfig = { limit: number; windowMs: number };
 
 const configs: Record<string, RateLimitConfig> = {
-  counselor: { limit: 10, window: "1 m", prefix: "rl:counselor" },
-  analyze: { limit: 3, window: "1 h", prefix: "rl:analyze" },
-  colleges: { limit: 3, window: "1 h", prefix: "rl:colleges" },
-  auth: { limit: 5, window: "15 m", prefix: "rl:auth" },
-  general: { limit: 60, window: "1 m", prefix: "rl:general" },
+  counselor: { limit: 10, windowMs: 60_000 },        // 10 per minute
+  analyze: { limit: 3, windowMs: 3_600_000 },         // 3 per hour
+  colleges: { limit: 3, windowMs: 3_600_000 },        // 3 per hour
+  auth: { limit: 5, windowMs: 900_000 },               // 5 per 15 min
+  general: { limit: 60, windowMs: 60_000 },            // 60 per minute
 };
 
-const _limiters: Record<string, Ratelimit> = {};
-
-function getLimiter(type: string): Ratelimit {
-  if (!_limiters[type]) {
-    const config = configs[type] || configs.general;
-    _limiters[type] = new Ratelimit({
-      redis: getRedis(),
-      limiter: Ratelimit.slidingWindow(config.limit, config.window as Parameters<typeof Ratelimit.slidingWindow>[1]),
-      prefix: config.prefix,
-    });
-  }
-  return _limiters[type];
-}
+// In-memory store: key -> array of timestamps
+const store = new Map<string, number[]>();
 
 export type RateLimitType = "counselor" | "analyze" | "colleges" | "auth" | "general";
 
@@ -44,10 +24,16 @@ export async function checkRateLimit(
   type: RateLimitType = "general"
 ): Promise<{ success: boolean; response?: Response }> {
   try {
-    const limiter = getLimiter(type);
-    const result = await limiter.limit(userId);
+    const config = configs[type] || configs.general;
+    const key = `${type}:${userId}`;
+    const now = Date.now();
+    const windowStart = now - config.windowMs;
 
-    if (!result.success) {
+    // Get existing timestamps, filter out expired ones
+    const timestamps = (store.get(key) || []).filter((t) => t > windowStart);
+
+    if (timestamps.length >= config.limit) {
+      store.set(key, timestamps);
       return {
         success: false,
         response: new Response(
@@ -62,9 +48,28 @@ export async function checkRateLimit(
       };
     }
 
+    // Add current timestamp
+    timestamps.push(now);
+    store.set(key, timestamps);
+
     return { success: true };
   } catch {
-    // If Redis is down, allow the request (fail open for availability)
+    // Fail open
     return { success: true };
   }
+}
+
+// Periodically clean up old entries to prevent memory leaks (every 5 min)
+if (typeof setInterval !== "undefined") {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, timestamps] of store.entries()) {
+      const filtered = timestamps.filter((t) => t > now - 3_600_000);
+      if (filtered.length === 0) {
+        store.delete(key);
+      } else {
+        store.set(key, filtered);
+      }
+    }
+  }, 300_000);
 }

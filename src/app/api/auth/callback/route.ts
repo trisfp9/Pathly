@@ -1,13 +1,50 @@
 import { NextResponse } from "next/server";
-import { createServerClient } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
 
   if (code) {
-    const supabase = createServerClient(code);
-    await supabase.auth.exchangeCodeForSession(code);
+    // Use anon key to exchange the code for a session
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (!error && data.user) {
+      // Create profile if it doesn't exist yet (first time after email verification)
+      const adminClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+
+      const { data: existing } = await adminClient
+        .from("profiles")
+        .select("id")
+        .eq("id", data.user.id)
+        .single();
+
+      if (!existing) {
+        await adminClient.from("profiles").insert({
+          id: data.user.id,
+          onboarding_completed: false,
+          xp: 0,
+          streak: 0,
+          ai_messages_used: 0,
+          ai_messages_this_month: 0,
+          profile_strength: 0,
+          is_pro: false,
+        });
+      }
+
+      // Send to onboarding if not completed, otherwise dashboard
+      if (!existing?.onboarding_completed) {
+        return NextResponse.redirect(`${origin}/onboarding`);
+      }
+    }
   }
 
   return NextResponse.redirect(`${origin}/dashboard`);

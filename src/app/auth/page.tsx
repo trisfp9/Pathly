@@ -30,21 +30,8 @@ export default function AuthPage() {
         });
         if (error) throw error;
 
-        // Create profile row
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.from("profiles").upsert({
-            id: user.id,
-            onboarding_completed: false,
-            xp: 0,
-            streak: 0,
-            ai_messages_used: 0,
-            ai_messages_this_month: 0,
-            profile_strength: 0,
-            is_pro: false,
-          });
-        }
-        router.push("/onboarding");
+        // Redirect to verification page — profile will be created after email confirm
+        router.push("/auth/verify");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
