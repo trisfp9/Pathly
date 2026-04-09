@@ -63,7 +63,7 @@ export async function checkRateLimit(
 if (typeof setInterval !== "undefined") {
   setInterval(() => {
     const now = Date.now();
-    for (const [key, timestamps] of store.entries()) {
+    for (const [key, timestamps] of Array.from(store.entries())) {
       const filtered = timestamps.filter((t) => t > now - 3_600_000);
       if (filtered.length === 0) {
         store.delete(key);
