@@ -40,12 +40,11 @@ export async function GET(request: Request) {
         });
       }
 
-      // Send to onboarding if not completed, otherwise dashboard
-      if (!existing?.onboarding_completed) {
-        return NextResponse.redirect(`${origin}/onboarding`);
       }
+
+      return NextResponse.redirect(`${origin}/auth/confirmed`);
     }
   }
 
-  return NextResponse.redirect(`${origin}/dashboard`);
+  return NextResponse.redirect(`${origin}/auth?error=invalid_code`);
 }
