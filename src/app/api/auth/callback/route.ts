@@ -6,7 +6,6 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
 
   if (code) {
-    // Use anon key to exchange the code for a session
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -15,7 +14,7 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.user) {
-      // Create profile if it doesn't exist yet (first time after email verification)
+      // Create profile row using admin client (bypasses RLS)
       const adminClient = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -40,11 +39,11 @@ export async function GET(request: Request) {
         });
       }
 
-      }
-
+      // Redirect to confirmed page — user will close this tab and sign in
       return NextResponse.redirect(`${origin}/auth/confirmed`);
     }
   }
 
+  // Code was missing or invalid
   return NextResponse.redirect(`${origin}/auth?error=invalid_code`);
 }
