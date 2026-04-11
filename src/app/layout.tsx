@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Inter, Caveat } from "next/font/google";
 import { Toaster } from "react-hot-toast";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -37,6 +38,7 @@ export default function RootLayout({
     <html lang="en" className={`${plusJakarta.variable} ${inter.variable} ${caveat.variable}`}>
       <body className="font-body antialiased">
         {children}
+        <SpeedInsights />
         <Toaster
           position="bottom-right"
           toastOptions={{
