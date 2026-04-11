@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -7,11 +7,15 @@ function isValidUrl(url: string): boolean {
   return url.startsWith("http://") || url.startsWith("https://");
 }
 
-// Client-side Supabase client (uses anon key, RLS enforced)
+// Singleton browser client — one instance shared across the whole app
+let browserClient: SupabaseClient | null = null;
+
 export function createBrowserClient() {
+  if (browserClient) return browserClient;
   const url = isValidUrl(SUPABASE_URL) ? SUPABASE_URL : "https://placeholder.supabase.co";
   const key = SUPABASE_ANON_KEY || "placeholder";
-  return createClient(url, key);
+  browserClient = createClient(url, key);
+  return browserClient;
 }
 
 // Server-side Supabase client with user's JWT (RLS enforced per user)

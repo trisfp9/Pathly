@@ -42,10 +42,10 @@ export default function ProfilePage() {
         toast.error("Failed to save changes.");
       } else {
         toast.success("Saved", { duration: 1500 });
+        refreshProfile();
       }
-      await refreshProfile();
     }, [user, supabase, refreshProfile]),
-    500
+    800
   );
 
   const updateField = (field: string, value: unknown) => {
