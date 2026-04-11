@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { createBrowserClient } from "@/lib/supabase";
@@ -44,7 +44,7 @@ export default function OnboardingPage() {
     extracurricular_interests: [], time_available: "", biggest_concern: "",
   });
   const router = useRouter();
-  const supabase = createBrowserClient();
+  const supabase = useMemo(() => createBrowserClient(), []);
 
   useEffect(() => {
     const loadExisting = async () => {
@@ -74,7 +74,8 @@ export default function OnboardingPage() {
       }
     };
     loadExisting();
-  }, [supabase, router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const saveStep = async (fields: Partial<OnboardingData>) => {
     const { data: { user } } = await supabase.auth.getUser();
