@@ -32,12 +32,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createBrowserClient();
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-    setProfile(data);
+    // Race against a timeout so a stale connection can never hang the app.
+    // Supabase-js will silently wait on token refresh forever if the refresh
+    // token is stale (common after long idle). We cap it at 8s and fail open.
+    try {
+      const result = await Promise.race([
+        supabase.from("profiles").select("*").eq("id", userId).single(),
+        new Promise<{ data: null; error: Error }>((resolve) =>
+          setTimeout(() => resolve({ data: null, error: new Error("timeout") }), 8000)
+        ),
+      ]);
+      setProfile(result.data);
+    } catch {
+      setProfile(null);
+    }
   }, [supabase]);
 
   const refreshProfile = useCallback(async () => {
@@ -77,7 +85,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    return () => subscription.unsubscribe();
+    // When the tab becomes visible again after being idle, proactively refresh
+    // the session so API calls use a fresh JWT instead of a stale/expired one.
+    const onVisible = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const { data } = await supabase.auth.refreshSession();
+        if (data.session) {
+          setSession(data.session);
+          setUser(data.session.user);
+        }
+      } catch {
+        // If refresh fails, onAuthStateChange will fire SIGNED_OUT and we'll handle it
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [supabase, fetchProfile]);
 
   return (

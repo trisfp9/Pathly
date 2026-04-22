@@ -30,9 +30,10 @@ interface OnboardingData {
   extracurricular_interests: string[];
   time_available: string;
   biggest_concern: string;
+  current_activities_raw: string; // free-text, parsed into current_activities array
 }
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
@@ -42,6 +43,7 @@ export default function OnboardingPage() {
     dream_college: "", aiming_level: "", major_interest: "",
     major_other: "", gpa_range: "", test_scores: "",
     extracurricular_interests: [], time_available: "", biggest_concern: "",
+    current_activities_raw: "",
   });
   const router = useRouter();
   const supabase = useMemo(() => createBrowserClient(), []);
@@ -56,6 +58,10 @@ export default function OnboardingPage() {
         .eq("id", user.id)
         .single();
       if (profile) {
+        const currentAct = Array.isArray(profile.current_activities) ? profile.current_activities : [];
+        const raw = currentAct.map((a: { name?: string; role?: string; description?: string }) =>
+          `${a.name || ""}${a.role ? ` (${a.role})` : ""}${a.description ? ` — ${a.description}` : ""}`
+        ).filter(Boolean).join("\n");
         setData((d) => ({
           ...d,
           name: profile.name || "",
@@ -70,6 +76,7 @@ export default function OnboardingPage() {
           extracurricular_interests: profile.extracurricular_interests || [],
           time_available: profile.time_available || "",
           biggest_concern: profile.biggest_concern || "",
+          current_activities_raw: raw,
         }));
       }
     };
@@ -103,6 +110,14 @@ export default function OnboardingPage() {
         case 6: await saveStep({ extracurricular_interests: data.extracurricular_interests }); break;
         case 7: await saveStep({ time_available: data.time_available }); break;
         case 8: {
+          const parsed = parseCurrentActivities(data.current_activities_raw);
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await supabase.from("profiles").update({ current_activities: parsed }).eq("id", user.id);
+          }
+          break;
+        }
+        case 9: {
           await saveStep({ biggest_concern: data.biggest_concern });
           const { data: { user } } = await supabase.auth.getUser();
           if (user) {
@@ -113,6 +128,15 @@ export default function OnboardingPage() {
               streak: 1,
               profile_strength: calculateStrength(data),
             }).eq("id", user.id);
+            // Kick off AI profile strength calculation in the background —
+            // don't block onboarding on it. We need a fresh session.
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+              fetch("/api/profile-strength", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${session.access_token}` },
+              }).catch(() => {});
+            }
           }
           router.push("/dashboard");
           return;
@@ -234,6 +258,31 @@ export default function OnboardingPage() {
 
             {step === 8 && (
               <div className="space-y-5">
+                <h2 className="font-heading font-bold text-2xl text-text-primary">What have you already done?</h2>
+                <p className="text-text-muted text-sm">
+                  List any clubs, activities, awards, leadership roles, jobs, or projects you&apos;ve done.
+                  Put each on its own line. Leave blank if you&apos;re starting from scratch — that&apos;s totally fine.
+                </p>
+                <p className="text-text-muted/70 text-xs">
+                  Example: <span className="italic">Math team captain — 2 years</span><br />
+                  <span className="italic">Volunteered at food bank — 80 hours</span><br />
+                  <span className="italic">Started a coding club at school</span>
+                </p>
+                <textarea
+                  value={data.current_activities_raw}
+                  onChange={(e) => setData({ ...data, current_activities_raw: e.target.value })}
+                  placeholder="One activity per line..."
+                  rows={6}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-button text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-purple/50 transition-colors text-sm resize-none"
+                />
+                <p className="text-text-muted/60 text-xs">
+                  You&apos;ll be able to edit this anytime in your Progress tab.
+                </p>
+              </div>
+            )}
+
+            {step === 9 && (
+              <div className="space-y-5">
                 <h2 className="font-heading font-bold text-2xl text-text-primary">What concerns you most?</h2>
                 <SelectGrid label="Biggest worry" options={CONCERNS} value={data.biggest_concern} onChange={(v) => setData({...data, biggest_concern: v})} />
               </div>
@@ -313,9 +362,29 @@ function canProceed(step: number, data: OnboardingData): boolean {
     case 5: return !!data.gpa_range;
     case 6: return data.extracurricular_interests.length > 0;
     case 7: return !!data.time_available;
-    case 8: return !!data.biggest_concern;
+    case 8: return true; // current activities is optional — starting from scratch is fine
+    case 9: return !!data.biggest_concern;
     default: return true;
   }
+}
+
+function parseCurrentActivities(raw: string): { name: string; description?: string }[] {
+  if (!raw || !raw.trim()) return [];
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      // Split on " — " or " - " to separate name from description if present
+      const sep = line.match(/\s[—-]\s/);
+      if (sep && sep.index !== undefined) {
+        return {
+          name: line.slice(0, sep.index).trim(),
+          description: line.slice(sep.index + sep[0].length).trim(),
+        };
+      }
+      return { name: line };
+    });
 }
 
 function calculateStrength(data: OnboardingData): number {

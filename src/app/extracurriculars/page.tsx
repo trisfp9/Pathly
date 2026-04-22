@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth-context";
-import { ExtracurricularRecommendation } from "@/types";
+import { ExtracurricularRecommendation, CompletedActivity } from "@/types";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import { CardSkeleton } from "@/components/ui/Skeleton";
-import { Sparkles, ChevronRight, Lock, RotateCw, BookOpen, Clock, TrendingUp, CheckCircle2 } from "lucide-react";
+import { Sparkles, ChevronRight, Lock, RotateCw, BookOpen, Clock, TrendingUp, CheckCircle2, Circle, Calendar } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
@@ -21,12 +21,14 @@ const fadeUp = {
 
 export default function ExtracurricularsPage() {
   const { profile, session, refreshProfile } = useAuth();
+  const [mainTab, setMainTab] = useState<"active" | "completed">("active");
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [recommendations, setRecommendations] = useState<ExtracurricularRecommendation[] | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
   const [roadmapData, setRoadmapData] = useState<Record<string, unknown> | null>(null);
   const [roadmapLoading, setRoadmapLoading] = useState(false);
+  const [completing, setCompleting] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile?.extracurricular_recommendations) {
@@ -134,6 +136,50 @@ export default function ExtracurricularsPage() {
     }
   };
 
+  const markComplete = async (category: string) => {
+    if (!profile) return;
+    if (!confirm(`Mark "${category}" as completed? It'll move to your completed list and boost your profile strength.`)) return;
+    setCompleting(category);
+    try {
+      const rec = recommendations?.find((r) => r.category === category);
+      const { createBrowserClient } = await import("@/lib/supabase");
+      const supabase = createBrowserClient();
+
+      const newCompleted: CompletedActivity[] = [
+        ...(profile.completed_activities || []),
+        {
+          category,
+          name: rec?.example || category,
+          description: rec?.explanation,
+          completed_at: new Date().toISOString(),
+        },
+      ];
+      const newSelected = (profile.selected_extracurricular_categories || []).filter((c) => c !== category);
+
+      await supabase.from("profiles").update({
+        completed_activities: newCompleted,
+        selected_extracurricular_categories: newSelected,
+        xp: (profile.xp || 0) + 25,
+      }).eq("id", profile.id);
+
+      // Fire-and-forget strength recalc
+      if (session?.access_token) {
+        fetch("/api/profile-strength", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }).catch(() => {});
+      }
+
+      setSelectedCategories(newSelected);
+      await refreshProfile();
+      toast.success("Nice! Moved to Completed and updating strength...");
+    } catch {
+      toast.error("Failed to mark complete.");
+    } finally {
+      setCompleting(null);
+    }
+  };
+
   const toggleCategory = (cat: string) => {
     setSelectedCategories((prev) =>
       prev.includes(cat) ? prev.filter((c) => c !== cat) : prev.length < 3 ? [...prev, cat] : prev
@@ -142,6 +188,8 @@ export default function ExtracurricularsPage() {
 
   if (!profile) return <div className="space-y-4"><CardSkeleton /><CardSkeleton /></div>;
 
+  const completedActivities: CompletedActivity[] = profile.completed_activities || [];
+
   return (
     <div className="space-y-8">
       <div>
@@ -149,6 +197,67 @@ export default function ExtracurricularsPage() {
         <p className="text-text-muted mt-1">Build a standout activity profile that admissions officers love.</p>
       </div>
 
+      {/* Main Tabs */}
+      <div className="flex gap-1 bg-white/5 rounded-button p-1 w-fit">
+        {([
+          { id: "active", label: "Active", count: (profile.selected_extracurricular_categories?.length || 0) },
+          { id: "completed", label: "Completed", count: completedActivities.length },
+        ] as const).map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setMainTab(t.id)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-[8px] text-sm font-medium transition-all ${
+              mainTab === t.id ? "bg-purple text-white" : "text-text-muted hover:text-text-primary"
+            }`}
+          >
+            {t.label}
+            <span className={`text-xs px-1.5 py-0.5 rounded ${
+              mainTab === t.id ? "bg-white/20" : "bg-white/10"
+            }`}>{t.count}</span>
+          </button>
+        ))}
+      </div>
+
+      {mainTab === "completed" && (
+        <div className="space-y-3">
+          {completedActivities.length === 0 ? (
+            <div className="glass-card p-8 text-center">
+              <CheckCircle2 className="w-10 h-10 text-text-muted/40 mx-auto mb-3" />
+              <p className="text-text-muted text-sm">
+                No completed activities yet. Finish one in the Active tab to move it here.
+              </p>
+            </div>
+          ) : (
+            completedActivities.map((c, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="glass-card p-5 flex items-start gap-4"
+              >
+                <div className="w-10 h-10 rounded-xl bg-pop/10 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle2 className="w-5 h-5 text-pop" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <h3 className="font-heading font-semibold text-text-primary">{c.category}</h3>
+                    <Badge variant="pop">Completed</Badge>
+                  </div>
+                  {c.description && <p className="text-text-muted text-sm mb-1">{c.description}</p>}
+                  <p className="text-text-muted/60 text-xs">
+                    <Calendar className="inline w-3 h-3 mr-1" />
+                    Completed {new Date(c.completed_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </motion.div>
+            ))
+          )}
+        </div>
+      )}
+
+      {mainTab === "active" && (
+        <>
       {/* Step indicator */}
       <div className="flex items-center gap-2">
         {[1, 2, 3].map((s) => (
@@ -229,6 +338,11 @@ export default function ExtracurricularsPage() {
                       <Badge variant={rec.impact_level === "Very High" ? "pop" : "accent"}>
                         <TrendingUp className="w-3 h-3 mr-1" /> {rec.impact_level} Impact
                       </Badge>
+                      {rec.estimated_time && (
+                        <Badge variant="muted">
+                          <Calendar className="w-3 h-3 mr-1" /> {rec.estimated_time}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-text-muted/60 text-xs mt-3 italic">{rec.example}</p>
                   </motion.button>
@@ -262,7 +376,21 @@ export default function ExtracurricularsPage() {
                       <BookOpen className="w-5 h-5 text-purple" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-heading font-semibold text-lg text-text-primary mb-2">{rec.category}</h3>
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <h3 className="font-heading font-semibold text-lg text-text-primary">{rec.category}</h3>
+                        <button
+                          onClick={() => markComplete(cat)}
+                          disabled={completing === cat}
+                          className="flex items-center gap-1.5 text-xs text-text-muted hover:text-pop transition-colors flex-shrink-0 disabled:opacity-50"
+                        >
+                          {completing === cat ? (
+                            <CheckCircle2 className="w-4 h-4 text-pop animate-pulse" />
+                          ) : (
+                            <Circle className="w-4 h-4" />
+                          )}
+                          Mark complete
+                        </button>
+                      </div>
                       <div className="space-y-3 text-sm text-text-muted">
                         <div>
                           <p className="font-medium text-text-primary text-xs uppercase tracking-wide mb-1">What this involves</p>
@@ -283,6 +411,11 @@ export default function ExtracurricularsPage() {
                           <Badge variant={rec.impact_level === "Very High" ? "pop" : "accent"}>
                             <TrendingUp className="w-3 h-3 mr-1" /> {rec.impact_level} Impact
                           </Badge>
+                          {rec.estimated_time && (
+                            <Badge variant="muted">
+                              <Calendar className="w-3 h-3 mr-1" /> {rec.estimated_time}
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -396,6 +529,8 @@ export default function ExtracurricularsPage() {
           </motion.div>
         )}
       </AnimatePresence>
+        </>
+      )}
     </div>
   );
 }

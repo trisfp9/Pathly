@@ -33,11 +33,12 @@ Return ONLY valid JSON (no markdown, no backticks) as an array of 5-8 objects wi
     "explanation": "2-3 sentence explanation of why this category fits this student specifically.",
     "effort_level": "Low" | "Medium" | "High",
     "impact_level": "Medium" | "High" | "Very High",
-    "example": "One generic example sentence (no specific competition names)."
+    "example": "One generic example sentence (no specific competition names).",
+    "estimated_time": "Realistic time range to achieve a meaningful result, e.g. '1-2 months', '3-6 months', '6-12 months', '1-2 years'"
   }
 ]
 
-Tailor categories to the student's major interest and goals. Be specific about WHY each category matters for their application.`;
+Tailor categories to the student's major interest and goals. Be specific about WHY each category matters for their application. The estimated_time should reflect how long it typically takes to build a presentable body of work in this category for a college application — not how long a single task takes.`;
 
     const result = await callClaude(systemPrompt, "Analyze my profile and recommend extracurricular categories.");
 

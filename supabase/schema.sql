@@ -30,9 +30,19 @@ create table if not exists profiles (
   college_list_cache jsonb,
   daily_tip_cache jsonb,
   detailed_profile jsonb,
+  current_activities jsonb,        -- array of activities the student has already done
+  completed_activities jsonb,      -- array of activities they've marked as completed via the app
+  profile_strength_breakdown jsonb, -- AI-computed breakdown { grades, activities, etc }
+  profile_strength_updated_at timestamp with time zone,
   onboarding_completed boolean default false,
   created_at timestamp with time zone default now()
 );
+
+-- Safe migration for existing installs
+alter table profiles add column if not exists current_activities jsonb;
+alter table profiles add column if not exists completed_activities jsonb;
+alter table profiles add column if not exists profile_strength_breakdown jsonb;
+alter table profiles add column if not exists profile_strength_updated_at timestamp with time zone;
 
 -- Saved items table
 create table if not exists saved_items (

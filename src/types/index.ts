@@ -26,8 +26,38 @@ export interface Profile {
   college_list_cache: CollegeList | null;
   daily_tip_cache: DailyTip | null;
   detailed_profile: DetailedProfile | null;
+  current_activities: CurrentActivity[] | null;
+  completed_activities: CompletedActivity[] | null;
+  profile_strength_breakdown: ProfileStrengthBreakdown | null;
+  profile_strength_updated_at: string | null;
   onboarding_completed: boolean;
   created_at: string;
+}
+
+export interface CurrentActivity {
+  name: string;
+  description?: string;
+  role?: string;
+  hours_per_week?: string;
+  years?: string;
+}
+
+export interface CompletedActivity {
+  category: string;
+  name: string;
+  description?: string;
+  completed_at: string;
+}
+
+export interface ProfileStrengthBreakdown {
+  overall: number; // 0-100
+  academics: number;
+  activities: number;
+  achievements: number;
+  essays: number;
+  explanation: string;
+  suggestions: string[];
+  target_college: string;
 }
 
 export interface ExtracurricularRecommendation {
@@ -36,6 +66,7 @@ export interface ExtracurricularRecommendation {
   effort_level: "Low" | "Medium" | "High";
   impact_level: "Medium" | "High" | "Very High";
   example: string;
+  estimated_time?: string; // e.g. "1-2 months", "6-12 months"
 }
 
 export interface ExtracurricularRoadmap {

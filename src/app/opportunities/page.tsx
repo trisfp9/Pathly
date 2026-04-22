@@ -10,7 +10,8 @@ import { competitions as allCompetitions } from "@/lib/competitions";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import { CardSkeleton } from "@/components/ui/Skeleton";
-import { GraduationCap, Trophy, Award, Search, Bookmark, Lock, MapPin, BarChart3 } from "lucide-react";
+import { GraduationCap, Trophy, Award, Search, Bookmark, MapPin, BarChart3, TrendingUp, Sparkles, RotateCw } from "lucide-react";
+import ProgressBar from "@/components/ui/ProgressBar";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
@@ -150,7 +151,18 @@ export default function OpportunitiesPage() {
 
       {/* Colleges Tab */}
       {tab === "colleges" && (
-        <div>
+        <div className="space-y-6">
+          {/* Profile strength card */}
+          <StrengthForCollegeList
+            strength={profile.profile_strength || 0}
+            lastListGenAt={profile.college_list_cache?.generated_at || null}
+            strengthUpdatedAt={profile.profile_strength_updated_at || null}
+            isPro={profile.is_pro}
+            hasList={!!collegeList}
+            onRegenerate={generateColleges}
+            loading={collegeLoading}
+          />
+
           {!collegeList ? (
             <div className="glass-card p-8 text-center max-w-xl mx-auto">
               <GraduationCap className="w-12 h-12 text-purple mx-auto mb-4" />
@@ -194,13 +206,6 @@ export default function OpportunitiesPage() {
                 </div>
               ))}
 
-              {profile.is_pro && (
-                <div className="text-center">
-                  <Button variant="ghost" size="sm" onClick={generateColleges} loading={collegeLoading}>
-                    Regenerate List
-                  </Button>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -289,6 +294,75 @@ export default function OpportunitiesPage() {
             ))}
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function StrengthForCollegeList({
+  strength,
+  lastListGenAt,
+  strengthUpdatedAt,
+  isPro,
+  hasList,
+  onRegenerate,
+  loading,
+}: {
+  strength: number;
+  lastListGenAt: string | null;
+  strengthUpdatedAt: string | null;
+  isPro: boolean;
+  hasList: boolean;
+  onRegenerate: () => void;
+  loading: boolean;
+}) {
+  // Free users: can regenerate when profile strength has been recomputed after last list generation.
+  // Pro users: always.
+  const strengthUpdatedSinceList =
+    strengthUpdatedAt && lastListGenAt && new Date(strengthUpdatedAt) > new Date(lastListGenAt);
+  const canRegenerate = isPro || !hasList || !!strengthUpdatedSinceList;
+
+  return (
+    <div className="glass-card p-5 border-purple/20 relative overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-accent via-purple to-energy" />
+      <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
+        <div className="flex items-center gap-3">
+          <TrendingUp className="w-5 h-5 text-purple" />
+          <div>
+            <p className="text-text-primary font-medium text-sm">Profile Strength</p>
+            <p className="text-text-muted text-xs">College list is matched to this score.</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="font-heading font-bold text-2xl text-text-primary">{strength}%</span>
+          {hasList ? (
+            <Button
+              variant={strengthUpdatedSinceList ? "purple" : "ghost"}
+              size="sm"
+              onClick={onRegenerate}
+              loading={loading}
+              disabled={!canRegenerate && !loading}
+            >
+              {strengthUpdatedSinceList ? <Sparkles className="w-4 h-4" /> : <RotateCw className="w-4 h-4" />}
+              {strengthUpdatedSinceList ? "Regenerate (new score!)" : "Regenerate"}
+            </Button>
+          ) : null}
+        </div>
+      </div>
+      <ProgressBar value={strength} variant={strength >= 70 ? "pop" : strength >= 40 ? "accent" : "purple"} />
+      {hasList && !canRegenerate && (
+        <p className="text-text-muted/70 text-xs mt-3">
+          Update your grades or mark activities complete in{" "}
+          <Link href="/progress" className="text-purple hover:underline">Progress</Link>{" "}
+          to unlock a fresh list.
+        </p>
+      )}
+      {strength === 0 && (
+        <p className="text-text-muted/70 text-xs mt-3">
+          No score yet — head to{" "}
+          <Link href="/progress" className="text-purple hover:underline">Progress</Link>{" "}
+          and click Recalculate for an honest AI assessment.
+        </p>
       )}
     </div>
   );

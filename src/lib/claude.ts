@@ -36,6 +36,18 @@ export function buildProfilePrompt(profile: Profile): string {
   const timeAvailable = sanitize(profile.time_available);
   const biggestConcern = sanitize(profile.biggest_concern);
 
+  // Activities the student has already done (shared with all users)
+  const currentActivities = (profile.current_activities || [])
+    .map((a) => `- ${sanitize(a.name)}${a.role ? ` (${sanitize(a.role)})` : ""}${a.description ? `: ${sanitize(a.description)}` : ""}${a.hours_per_week ? ` — ${sanitize(a.hours_per_week)}/wk` : ""}${a.years ? ` — ${sanitize(a.years)}` : ""}`)
+    .join("\n");
+  const completedActivities = (profile.completed_activities || [])
+    .map((a) => `- ${sanitize(a.category)} — ${sanitize(a.name)}${a.description ? `: ${sanitize(a.description)}` : ""}`)
+    .join("\n");
+
+  const activitiesSection = (currentActivities || completedActivities)
+    ? `\n\nStudent's Actual Track Record:\n${currentActivities ? `Current/Past Activities:\n${currentActivities}\n` : ""}${completedActivities ? `Activities Completed via Pathly:\n${completedActivities}\n` : ""}Use this to ground your advice in what they've actually done — don't recommend things they're already doing unless suggesting how to go deeper.`
+    : "\n\nStudent has not yet logged any concrete activities or achievements.";
+
   // Pro-only detailed profile fields
   const detailedProfile = profile.detailed_profile as Record<string, string> | null;
 
@@ -74,7 +86,7 @@ Student Profile:
 - Extracurricular Interests: ${ecInterests}
 - Time Available Per Week: ${timeAvailable}
 - Biggest Concern: ${biggestConcern}
-- Pro Member: ${profile.is_pro ? "Yes" : "No"}${detailedSection}
+- Pro Member: ${profile.is_pro ? "Yes" : "No"}${activitiesSection}${detailedSection}
 
 Guidelines:
 - Address the student by name (${name || "their name"}) to make it personal
