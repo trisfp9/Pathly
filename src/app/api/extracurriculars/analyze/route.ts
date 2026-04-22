@@ -59,7 +59,9 @@ Tailor categories to the student's major interest and goals. Be specific about W
       .eq("id", user.id);
 
     return NextResponse.json({ recommendations });
-  } catch {
-    return NextResponse.json({ error: "Analysis failed. Please try again." }, { status: 500 });
+  } catch (err) {
+    console.error("EC analysis error:", err);
+    const message = err instanceof Error ? err.message : "Analysis failed";
+    return NextResponse.json({ error: message.includes("API") ? message : "Analysis failed. Please try again." }, { status: 500 });
   }
 }

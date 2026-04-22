@@ -73,7 +73,9 @@ Include REAL competition/program names (e.g., "Intel ISEF", "MIT PRIMES", "USABO
     }
 
     return NextResponse.json({ roadmap });
-  } catch {
-    return NextResponse.json({ error: "Roadmap generation failed. Please try again." }, { status: 500 });
+  } catch (err) {
+    console.error("Roadmap error:", err);
+    const message = err instanceof Error ? err.message : "Roadmap generation failed";
+    return NextResponse.json({ error: message.includes("API") ? message : "Roadmap generation failed. Please try again." }, { status: 500 });
   }
 }

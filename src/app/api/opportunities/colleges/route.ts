@@ -71,7 +71,9 @@ Consider the student's GPA, test scores, major interest, dream college, aiming l
       .eq("id", user.id);
 
     return NextResponse.json({ colleges });
-  } catch {
-    return NextResponse.json({ error: "College list generation failed. Please try again." }, { status: 500 });
+  } catch (err) {
+    console.error("College list error:", err);
+    const message = err instanceof Error ? err.message : "College list generation failed";
+    return NextResponse.json({ error: message.includes("API") ? message : "College list generation failed. Please try again." }, { status: 500 });
   }
 }

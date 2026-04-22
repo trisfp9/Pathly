@@ -4,6 +4,14 @@ import { checkRateLimit } from "@/lib/ratelimit";
 import { buildProfilePrompt } from "@/lib/claude";
 import Anthropic from "@anthropic-ai/sdk";
 
+function getAnthropicClient() {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY is not set");
+  }
+  return new Anthropic({ apiKey });
+}
+
 export async function POST(request: Request) {
   // Auth check
   const auth = await getAuthenticatedUser(request);
@@ -73,7 +81,7 @@ export async function POST(request: Request) {
 
   // Stream response
   try {
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+    const anthropic = getAnthropicClient();
 
     const stream = await anthropic.messages.stream(
       {
@@ -140,9 +148,11 @@ export async function POST(request: Request) {
         "Transfer-Encoding": "chunked",
       },
     });
-  } catch {
+  } catch (err) {
+    console.error("Counselor API error:", err);
+    const message = err instanceof Error ? err.message : "Something went wrong";
     return NextResponse.json(
-      { error: "Something went wrong. Please try again." },
+      { error: message.includes("API") ? message : "Something went wrong. Please try again." },
       { status: 500 }
     );
   }

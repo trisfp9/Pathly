@@ -7,6 +7,7 @@ import { useDebouncedCallback } from "@/hooks/useDebounce";
 import Button from "@/components/ui/Button";
 import ProgressBar from "@/components/ui/ProgressBar";
 import Badge from "@/components/ui/Badge";
+import Skeleton from "@/components/ui/Skeleton";
 import { createBrowserClient } from "@/lib/supabase";
 import { User, Crown, Trash2, RotateCw, Shield } from "lucide-react";
 import Link from "next/link";
@@ -20,15 +21,36 @@ const GPA_RANGES = ["Below 2.5", "2.5 - 3.0", "3.0 - 3.5", "3.5 - 3.8", "3.8 - 4
 const EC_INTERESTS = ["Sports", "Arts", "Tech", "Research", "Community Service", "Business", "Writing", "Music", "Science", "Math", "Other"];
 const TIME_OPTIONS = ["Less than 2 hours", "2-5 hours", "5-10 hours", "10+ hours"];
 
+// Compute profile strength based on how many fields are filled
+function computeProfileStrength(p: Record<string, unknown>): number {
+  const fields = [
+    "name", "grade", "country", "target_country", "dream_college",
+    "aiming_level", "major_interest", "gpa_range", "test_scores", "time_available",
+    "biggest_concern",
+  ];
+  let filled = 0;
+  for (const f of fields) {
+    if (p[f] && String(p[f]).trim()) filled++;
+  }
+  // Extracurricular interests count as a field too
+  if (Array.isArray(p.extracurricular_interests) && (p.extracurricular_interests as string[]).length > 0) filled++;
+  const total = fields.length + 1; // +1 for EC interests
+  return Math.round((filled / total) * 100);
+}
+
 export default function ProfilePage() {
-  const { profile, refreshProfile, user } = useAuth();
+  const { profile, refreshProfile, user, loading } = useAuth();
   const router = useRouter();
   const supabase = createBrowserClient();
   const [deleting, setDeleting] = useState(false);
   const [localProfile, setLocalProfile] = useState(profile);
 
   useEffect(() => {
-    setLocalProfile(profile);
+    if (profile) {
+      // Compute profile strength client-side so it's always up to date
+      const strength = computeProfileStrength(profile as unknown as Record<string, unknown>);
+      setLocalProfile({ ...profile, profile_strength: strength });
+    }
   }, [profile]);
 
   const debouncedSave = useDebouncedCallback(
@@ -67,7 +89,23 @@ export default function ProfilePage() {
     setDeleting(false);
   };
 
-  if (!localProfile) return null;
+  if (loading || !localProfile) {
+    return (
+      <div className="space-y-8 max-w-2xl">
+        <div>
+          <Skeleton className="h-8 w-48 mb-2" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="glass-card p-6 space-y-4">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-2xl">
@@ -145,6 +183,36 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* Pro Detailed Profile */}
+      {localProfile.is_pro ? (
+        <DetailedProfileForm
+          profile={localProfile}
+          onUpdate={(field, value) => {
+            const current = (localProfile.detailed_profile || {}) as Record<string, string>;
+            const updated = { ...current, [field]: value };
+            updateField("detailed_profile", updated);
+          }}
+        />
+      ) : (
+        <div className="glass-card p-6 border-purple/20 relative overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-accent via-purple to-energy" />
+          <div className="flex items-center gap-3 mb-3">
+            <Crown className="w-5 h-5 text-purple" />
+            <h2 className="font-heading font-semibold text-text-primary">Detailed Profile</h2>
+            <Badge variant="pop">Pro</Badge>
+          </div>
+          <p className="text-text-muted text-sm mb-4">
+            Unlock the detailed profile form to give the AI counselor deeper knowledge about your activities,
+            achievements, leadership experience, and personal story — resulting in much more specific and useful advice.
+          </p>
+          <Link href="/pricing">
+            <Button variant="purple" size="sm">
+              <Crown className="w-4 h-4" /> Upgrade to Unlock
+            </Button>
+          </Link>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="glass-card p-6 space-y-4">
         <Link href="/onboarding">
@@ -204,6 +272,76 @@ function SelectField({ label, options, value, onChange }: {
           <option key={opt} value={opt} className="bg-surface">{opt}</option>
         ))}
       </select>
+    </div>
+  );
+}
+
+function TextAreaField({ label, value, onChange, placeholder, hint }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; hint?: string;
+}) {
+  return (
+    <div>
+      <label className="block text-sm text-text-muted mb-2">{label}</label>
+      {hint && <p className="text-text-muted/60 text-xs mb-2">{hint}</p>}
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={3}
+        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-button text-text-primary placeholder:text-text-muted/40 focus:outline-none focus:border-purple/50 transition-colors text-sm resize-none"
+      />
+    </div>
+  );
+}
+
+import { Profile } from "@/types";
+import { FileText } from "lucide-react";
+
+const DETAILED_FIELDS: { key: string; label: string; placeholder: string; hint: string }[] = [
+  { key: "current_activities", label: "Current Activities & Clubs", placeholder: "e.g., Math team captain, debate club, volunteer at local hospital...", hint: "List everything you're currently involved in, with your role." },
+  { key: "achievements", label: "Achievements & Awards", placeholder: "e.g., State math competition 2nd place, Honor Roll...", hint: "Include academic, extracurricular, and any other awards." },
+  { key: "leadership", label: "Leadership Roles", placeholder: "e.g., Student council VP, founded coding club...", hint: "Any positions where you led, organized, or managed others." },
+  { key: "work_experience", label: "Work & Internship Experience", placeholder: "e.g., Summer internship at tech startup, tutoring...", hint: "Paid or unpaid work, internships, research positions." },
+  { key: "community_service", label: "Community Service & Volunteering", placeholder: "e.g., 200+ hours at food bank, organized charity drive...", hint: "Include hours if you know them." },
+  { key: "strengths", label: "Personal Strengths", placeholder: "e.g., Strong analytical thinking, good at public speaking...", hint: "What are you genuinely good at? Be honest." },
+  { key: "weaknesses", label: "Areas for Improvement", placeholder: "e.g., Need to improve time management, limited research experience...", hint: "The AI will help you address these specifically." },
+  { key: "personal_story", label: "Personal Story / Essay Topics", placeholder: "e.g., Overcame language barrier as an immigrant, started a business at 14...", hint: "What makes you unique? Any challenges you've overcome?" },
+  { key: "family_background", label: "Family Background", placeholder: "e.g., First-generation college student, parents are engineers...", hint: "Relevant family context that may affect your application." },
+  { key: "financial_situation", label: "Financial Aid Needs", placeholder: "e.g., Need full scholarship, can afford some tuition...", hint: "This helps recommend schools with good financial aid." },
+  { key: "special_circumstances", label: "Special Circumstances", placeholder: "e.g., International student, learning disability, athlete...", hint: "Anything else the AI should know about your situation." },
+];
+
+function DetailedProfileForm({ profile, onUpdate }: {
+  profile: Profile;
+  onUpdate: (field: string, value: string) => void;
+}) {
+  const detailed = (profile.detailed_profile || {}) as Record<string, string>;
+  const filledCount = DETAILED_FIELDS.filter(f => detailed[f.key]?.trim()).length;
+
+  return (
+    <div className="glass-card p-6 space-y-6 border-purple/20 relative overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-accent via-purple to-energy" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <FileText className="w-5 h-5 text-purple" />
+          <h2 className="font-heading font-semibold text-text-primary">Detailed Profile</h2>
+          <Badge variant="pop">Pro</Badge>
+        </div>
+        <span className="text-xs text-text-muted">{filledCount}/{DETAILED_FIELDS.length} completed</span>
+      </div>
+      <p className="text-text-muted text-sm">
+        The more you fill in, the more personalized and specific the AI counselor&apos;s advice will be.
+      </p>
+      {DETAILED_FIELDS.map((field) => (
+        <TextAreaField
+          key={field.key}
+          label={field.label}
+          value={detailed[field.key] || ""}
+          onChange={(v) => onUpdate(field.key, v)}
+          placeholder={field.placeholder}
+          hint={field.hint}
+        />
+      ))}
     </div>
   );
 }

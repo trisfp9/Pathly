@@ -29,6 +29,7 @@ create table if not exists profiles (
   selected_extracurricular_categories text[],
   college_list_cache jsonb,
   daily_tip_cache jsonb,
+  detailed_profile jsonb,
   onboarding_completed boolean default false,
   created_at timestamp with time zone default now()
 );

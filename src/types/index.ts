@@ -25,6 +25,7 @@ export interface Profile {
   selected_extracurricular_categories: string[] | null;
   college_list_cache: CollegeList | null;
   daily_tip_cache: DailyTip | null;
+  detailed_profile: DetailedProfile | null;
   onboarding_completed: boolean;
   created_at: string;
 }
@@ -65,6 +66,20 @@ export interface CollegeCard {
 export interface DailyTip {
   tip: string;
   date: string;
+}
+
+export interface DetailedProfile {
+  current_activities: string;
+  achievements: string;
+  leadership: string;
+  work_experience: string;
+  community_service: string;
+  strengths: string;
+  weaknesses: string;
+  personal_story: string;
+  family_background: string;
+  financial_situation: string;
+  special_circumstances: string;
 }
 
 export interface SavedItem {
