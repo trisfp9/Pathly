@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import Button from "@/components/ui/Button";
@@ -18,25 +19,61 @@ const fadeUp = {
 };
 
 function PricingContent() {
-  const { profile, session } = useAuth();
+  const { profile, session, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
+
+  // Handle return from Stripe checkout
+  useEffect(() => {
+    const checkout = searchParams.get("checkout");
+    if (checkout === "cancelled") {
+      toast("Checkout cancelled. You can try again anytime.", { icon: "↩️" });
+      // Clean up URL
+      window.history.replaceState({}, "", "/pricing");
+    }
+    if (checkout === "success") {
+      // Refresh profile to pick up Pro status
+      refreshProfile();
+    }
+  }, [searchParams, refreshProfile]);
 
   const handleCheckout = async () => {
     if (!session?.access_token) {
-      window.location.href = "/auth";
+      // Redirect to auth with a return URL so they come back to pricing after login
+      window.location.href = "/auth?redirect=/pricing";
       return;
     }
+
+    // Double-check that the user has a profile before proceeding
+    if (!profile) {
+      toast.error("Please complete onboarding first.");
+      window.location.href = "/onboarding";
+      return;
+    }
+
+    if (profile.is_pro) {
+      toast("You're already a Pro member!", { icon: "👑" });
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Checkout failed");
+      }
       const { url } = await res.json();
-      window.location.href = url;
-    } catch {
-      toast.error("Failed to start checkout. Please try again.");
+      if (url) {
+        window.location.href = url;
+      } else {
+        throw new Error("No checkout URL returned");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to start checkout. Please try again.");
     }
     setLoading(false);
   };
@@ -66,7 +103,7 @@ function PricingContent() {
     <main className="min-h-screen bg-background">
       {!profile && <Navbar />}
 
-      <div className={`max-w-4xl mx-auto px-6 ${!profile ? "pt-32" : "pt-0"} pb-20`}>
+      <div className={`max-w-4xl mx-auto px-6 ${!profile ? "pt-32" : "pt-12"} pb-20`}>
         <motion.div
           initial="hidden"
           animate="visible"
@@ -200,7 +237,9 @@ function PricingContent() {
 export default function PricingPage() {
   return (
     <AuthProvider>
-      <PricingContent />
+      <Suspense>
+        <PricingContent />
+      </Suspense>
     </AuthProvider>
   );
 }

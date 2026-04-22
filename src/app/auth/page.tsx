@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { createBrowserClient } from "@/lib/supabase";
 import Button from "@/components/ui/Button";
@@ -10,11 +10,21 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 
 export default function AuthPage() {
+  return (
+    <Suspense>
+      <AuthContent />
+    </Suspense>
+  );
+}
+
+function AuthContent() {
   const [mode, setMode] = useState<"signin" | "signup">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect");
   const supabase = createBrowserClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,7 +56,7 @@ export default function AuthPage() {
             .single();
 
           if (profile?.onboarding_completed) {
-            router.push("/dashboard");
+            router.push(redirectTo || "/dashboard");
           } else {
             router.push("/onboarding");
           }
