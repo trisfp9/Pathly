@@ -9,7 +9,7 @@ import { createBrowserClient } from "@/lib/supabase";
 import { updateStreak } from "@/lib/streak";
 import {
   LayoutDashboard, BookOpen, MessageSquare, Compass, User, LogOut,
-  Crown, ChevronLeft, Menu,
+  Crown, ChevronLeft, Menu, Bookmark,
 } from "lucide-react";
 import Skeleton from "@/components/ui/Skeleton";
 
@@ -18,6 +18,7 @@ const navItems = [
   { href: "/extracurriculars", label: "Activities", icon: BookOpen },
   { href: "/counselor", label: "Counselor", icon: MessageSquare },
   { href: "/opportunities", label: "Discover", icon: Compass },
+  { href: "/saved", label: "Saved", icon: Bookmark },
   { href: "/profile", label: "Profile", icon: User },
 ];
 

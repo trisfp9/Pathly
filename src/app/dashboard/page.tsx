@@ -20,9 +20,10 @@ const fadeUp = {
 };
 
 export default function DashboardPage() {
-  const { profile, loading, session } = useAuth();
+  const { profile, loading, session, user } = useAuth();
   const [tip, setTip] = useState<string | null>(null);
   const [tipLoading, setTipLoading] = useState(true);
+  const [savedCount, setSavedCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (!session?.access_token) return;
@@ -40,6 +41,21 @@ export default function DashboardPage() {
     };
     fetchTip();
   }, [session]);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchSavedCount = async () => {
+      try {
+        const { createBrowserClient } = await import("@/lib/supabase");
+        const supabase = createBrowserClient();
+        const { count } = await supabase
+          .from("saved_items")
+          .select("*", { count: "exact", head: true });
+        setSavedCount(count ?? 0);
+      } catch { /* non-critical */ }
+    };
+    fetchSavedCount();
+  }, [user]);
 
   if (loading || !profile) {
     return (
@@ -134,7 +150,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: "Profile Strength", value: `${profile.profile_strength}%`, icon: TrendingUp, color: "text-accent" },
-          { label: "Items Saved", value: "—", icon: BookmarkCheck, color: "text-pop" },
+          { label: "Items Saved", value: savedCount === null ? "—" : String(savedCount), icon: BookmarkCheck, color: "text-pop" },
           { label: "Messages Used", value: `${messagesUsed}/${messagesMax}`, icon: MessageSquare, color: "text-orange-400" },
         ].map((stat, i) => (
           <motion.div key={stat.label} initial="hidden" animate="visible" variants={fadeUp} custom={4 + i} className="glass-card p-4 md:p-6 text-center">

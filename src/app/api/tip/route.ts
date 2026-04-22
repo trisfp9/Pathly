@@ -29,11 +29,12 @@ export async function GET(request: Request) {
   // Generate new tip
   try {
     const result = await callClaude(
-      "You are a college admissions tip generator. Give one brief, actionable tip (1-2 sentences max). Be specific and encouraging.",
+      "You are a college admissions tip generator. Give one short, actionable tip in 2-3 sentences. Be specific, encouraging, and complete — never end mid-thought. Keep it under 400 characters total.",
       `Generate a tip for a ${profile.grade || "high school"} student interested in ${profile.major_interest || "college"}. Today's date: ${today}. Make it unique and seasonal if relevant.`
     );
 
-    const tip = result.trim().slice(0, 300);
+    // Don't truncate — let the full tip through. Claude will keep it short per the prompt.
+    const tip = result.trim();
     const tipCache = { tip, date: today };
 
     await supabase

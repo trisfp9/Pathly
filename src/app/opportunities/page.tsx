@@ -49,12 +49,16 @@ export default function OpportunitiesPage() {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (res.status === 429) { toast.error("You're going too fast — please wait a moment."); return; }
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Request failed with status ${res.status}`);
+      }
       const data = await res.json();
       setCollegeList(data.colleges);
       await refreshProfile();
-    } catch {
-      toast.error("Something went wrong. Please try again.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      toast.error(message);
     } finally {
       setCollegeLoading(false);
     }

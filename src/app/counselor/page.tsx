@@ -93,7 +93,10 @@ export default function CounselorPage() {
         return;
       }
 
-      if (!res.ok) throw new Error("Failed to send message");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Request failed with status ${res.status}`);
+      }
 
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
@@ -114,8 +117,9 @@ export default function CounselorPage() {
       }
 
       await refreshProfile();
-    } catch {
-      toast.error("Something went wrong — please try again.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Something went wrong — please try again.";
+      toast.error(message);
       setMessages((prev) => {
         const updated = [...prev];
         if (updated[updated.length - 1]?.content === "") {
