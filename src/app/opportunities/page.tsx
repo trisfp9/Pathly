@@ -43,10 +43,13 @@ export default function OpportunitiesPage() {
   const generateColleges = async () => {
     if (!session?.access_token) return;
     setCollegeLoading(true);
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 60000);
     try {
       const res = await fetch("/api/opportunities/colleges", {
         method: "POST",
         headers: { Authorization: `Bearer ${session.access_token}` },
+        signal: abortController.signal,
       });
       if (res.status === 429) { toast.error("You're going too fast — please wait a moment."); return; }
       if (!res.ok) {
@@ -57,9 +60,15 @@ export default function OpportunitiesPage() {
       setCollegeList(data.colleges);
       await refreshProfile();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      let message = "Something went wrong. Please try again.";
+      if (err instanceof Error) {
+        message = err.name === "AbortError"
+          ? "Request timed out. Please try again."
+          : err.message;
+      }
       toast.error(message);
     } finally {
+      clearTimeout(timeoutId);
       setCollegeLoading(false);
     }
   };

@@ -3,6 +3,8 @@ import { getAuthenticatedUser } from "@/lib/supabase";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { callClaude } from "@/lib/claude";
 
+export const maxDuration = 30;
+
 export async function GET(request: Request) {
   const auth = await getAuthenticatedUser(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

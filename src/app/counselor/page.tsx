@@ -67,6 +67,10 @@ export default function CounselorPage() {
     // Add placeholder for assistant
     setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
+    // Client-side timeout so requests never hang forever
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 60000); // 60s
+
     try {
       const res = await fetch("/api/counselor", {
         method: "POST",
@@ -77,6 +81,7 @@ export default function CounselorPage() {
         body: JSON.stringify({
           messages: [...messages, userMsg].slice(-20), // Last 20 messages for context
         }),
+        signal: abortController.signal,
       });
 
       if (res.status === 429) {
@@ -118,7 +123,12 @@ export default function CounselorPage() {
 
       await refreshProfile();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Something went wrong — please try again.";
+      let message = "Something went wrong — please try again.";
+      if (err instanceof Error) {
+        message = err.name === "AbortError"
+          ? "Request timed out after 60 seconds. The server may be overloaded — please try again."
+          : err.message;
+      }
       toast.error(message);
       setMessages((prev) => {
         const updated = [...prev];
@@ -128,6 +138,7 @@ export default function CounselorPage() {
         return updated;
       });
     } finally {
+      clearTimeout(timeoutId);
       setStreaming(false);
     }
   };

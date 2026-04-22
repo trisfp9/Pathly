@@ -4,6 +4,9 @@ import { checkRateLimit } from "@/lib/ratelimit";
 import { buildProfilePrompt } from "@/lib/claude";
 import Anthropic from "@anthropic-ai/sdk";
 
+// Allow up to 60s for streaming AI responses (Vercel Hobby max)
+export const maxDuration = 60;
+
 function getAnthropicClient() {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {

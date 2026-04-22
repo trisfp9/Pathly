@@ -43,6 +43,8 @@ export default function ExtracurricularsPage() {
   const runAnalysis = async () => {
     if (!session?.access_token) return;
     setAnalyzing(true);
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 60000);
     try {
       const res = await fetch("/api/extracurriculars/analyze", {
         method: "POST",
@@ -50,6 +52,7 @@ export default function ExtracurricularsPage() {
           Authorization: `Bearer ${session.access_token}`,
           "Content-Type": "application/json",
         },
+        signal: abortController.signal,
       });
       if (res.status === 429) {
         toast.error("You're going too fast — please wait a moment.");
@@ -64,9 +67,15 @@ export default function ExtracurricularsPage() {
       await refreshProfile();
       setStep(2);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      let message = "Something went wrong. Please try again.";
+      if (err instanceof Error) {
+        message = err.name === "AbortError"
+          ? "Request timed out. Please try again."
+          : err.message;
+      }
       toast.error(message);
     } finally {
+      clearTimeout(timeoutId);
       setAnalyzing(false);
     }
   };
@@ -89,6 +98,8 @@ export default function ExtracurricularsPage() {
   const generateRoadmap = async () => {
     if (!session?.access_token || !profile?.is_pro) return;
     setRoadmapLoading(true);
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 60000);
     try {
       const res = await fetch("/api/extracurriculars/roadmap", {
         method: "POST",
@@ -97,6 +108,7 @@ export default function ExtracurricularsPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ categories: selectedCategories }),
+        signal: abortController.signal,
       });
       if (res.status === 429) {
         toast.error("You're going too fast — please wait a moment.");
@@ -109,9 +121,15 @@ export default function ExtracurricularsPage() {
       const data = await res.json();
       setRoadmapData(data.roadmap);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      let message = "Something went wrong. Please try again.";
+      if (err instanceof Error) {
+        message = err.name === "AbortError"
+          ? "Request timed out. Please try again."
+          : err.message;
+      }
       toast.error(message);
     } finally {
+      clearTimeout(timeoutId);
       setRoadmapLoading(false);
     }
   };

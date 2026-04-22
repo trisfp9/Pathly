@@ -3,6 +3,8 @@ import { getAuthenticatedUser } from "@/lib/supabase";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { callClaude, buildProfilePrompt } from "@/lib/claude";
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   const auth = await getAuthenticatedUser(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

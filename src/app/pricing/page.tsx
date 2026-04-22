@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import Button from "@/components/ui/Button";
 import Navbar from "@/components/landing/Navbar";
-import { Check, Crown, Sparkles, Zap } from "lucide-react";
+import { Check, Crown, Sparkles, Zap, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
 
 const fadeUp = {
@@ -22,6 +22,16 @@ function PricingContent() {
   const { profile, session, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const handleBack = () => {
+    // Try to go back in history, otherwise go to a sensible default
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push(profile ? "/dashboard" : "/");
+    }
+  };
 
   // Handle return from Stripe checkout
   useEffect(() => {
@@ -104,6 +114,15 @@ function PricingContent() {
       {!profile && <Navbar />}
 
       <div className={`max-w-4xl mx-auto px-6 ${!profile ? "pt-32" : "pt-12"} pb-20`}>
+        {/* Back button */}
+        <button
+          onClick={handleBack}
+          className="flex items-center gap-2 text-text-muted hover:text-text-primary transition-colors mb-8 text-sm"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
+
         <motion.div
           initial="hidden"
           animate="visible"
