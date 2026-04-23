@@ -110,7 +110,7 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* XP Level */}
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={2} className="glass-card p-6 relative group">
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={2} className="glass-card p-6 relative group z-10 hover:z-50">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-purple/10 flex items-center justify-center">
@@ -134,7 +134,7 @@ export default function DashboardPage() {
             showLabel
           />
           {/* Hover: how to earn XP */}
-          <div className="absolute top-full right-0 mt-2 w-72 bg-surface border border-white/10 rounded-card p-4 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-30 pointer-events-none">
+          <div className="absolute top-full right-0 mt-2 w-72 bg-surface border border-white/10 rounded-card p-4 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] pointer-events-none">
             <p className="text-text-primary text-xs font-semibold uppercase tracking-wide mb-2">How to earn XP</p>
             <ul className="space-y-1.5">
               {XP_SOURCES.map((s) => (
