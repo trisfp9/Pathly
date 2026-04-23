@@ -236,11 +236,15 @@ export default function ProgressPage() {
 
         <div className="mb-4">
           <div className="flex items-baseline gap-2 mb-2">
-            <span className="font-heading font-bold text-4xl text-text-primary">{strength}%</span>
-            <span className="text-text-muted text-sm">overall</span>
+            <span className="font-heading font-bold text-4xl text-text-primary">
+              {profile.profile_strength_updated_at ? `${strength}%` : "—"}
+            </span>
+            <span className="text-text-muted text-sm">
+              {profile.profile_strength_updated_at ? "overall" : "not yet graded"}
+            </span>
           </div>
           <ProgressBar
-            value={strength}
+            value={profile.profile_strength_updated_at ? strength : 0}
             variant={strength >= 70 ? "pop" : strength >= 40 ? "accent" : "purple"}
             size="lg"
           />

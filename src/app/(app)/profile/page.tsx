@@ -117,15 +117,19 @@ export default function ProfilePage() {
               <Shield className="w-5 h-5 text-purple" />
               <h2 className="font-heading font-semibold text-text-primary">Profile Strength</h2>
             </div>
-            <span className="font-heading font-bold text-2xl text-text-primary">{localProfile.profile_strength}%</span>
+            <span className="font-heading font-bold text-2xl text-text-primary">
+              {localProfile.profile_strength_updated_at ? `${localProfile.profile_strength}%` : "—"}
+            </span>
           </div>
           <ProgressBar
-            value={localProfile.profile_strength}
+            value={localProfile.profile_strength_updated_at ? localProfile.profile_strength : 0}
             variant={localProfile.profile_strength >= 70 ? "pop" : localProfile.profile_strength >= 40 ? "accent" : "purple"}
             size="md"
           />
           <p className="text-text-muted text-xs mt-2">
-            Update grades, activities, and awards in the Progress tab to improve this score.
+            {localProfile.profile_strength_updated_at
+              ? "Update grades, activities, and awards in the Progress tab to improve this score."
+              : "Not yet graded. Head to the Progress tab and hit Recalculate for your first AI-scored assessment."}
           </p>
         </motion.div>
       </Link>
