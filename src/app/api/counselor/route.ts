@@ -132,10 +132,10 @@ export async function POST(request: Request) {
             .update({ [updateField]: messagesUsed + 1 })
             .eq("id", user.id);
 
-          // Award XP (+3 for counselor message)
+          // Award XP (+2 per counselor message — matches XP_SOURCES)
           await supabase
             .from("profiles")
-            .update({ xp: profile.xp + 3 })
+            .update({ xp: profile.xp + 2 })
             .eq("id", user.id);
 
           controller.close();

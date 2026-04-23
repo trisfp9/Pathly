@@ -34,6 +34,11 @@ create table if not exists profiles (
   completed_activities jsonb,      -- array of activities they've marked as completed via the app
   profile_strength_breakdown jsonb, -- AI-computed breakdown { grades, activities, etc }
   profile_strength_updated_at timestamp with time zone,
+  awards jsonb,                    -- array of { name, level, year, description }
+  essay_text text,                 -- latest essay draft submitted by user
+  essay_score integer,             -- AI grade 0-100 on latest submission
+  essay_feedback jsonb,            -- AI feedback { strengths[], weaknesses[], rewrite_suggestions[] }
+  essay_last_reviewed_at timestamp with time zone,
   onboarding_completed boolean default false,
   created_at timestamp with time zone default now()
 );
@@ -43,6 +48,11 @@ alter table profiles add column if not exists current_activities jsonb;
 alter table profiles add column if not exists completed_activities jsonb;
 alter table profiles add column if not exists profile_strength_breakdown jsonb;
 alter table profiles add column if not exists profile_strength_updated_at timestamp with time zone;
+alter table profiles add column if not exists awards jsonb;
+alter table profiles add column if not exists essay_text text;
+alter table profiles add column if not exists essay_score integer;
+alter table profiles add column if not exists essay_feedback jsonb;
+alter table profiles add column if not exists essay_last_reviewed_at timestamp with time zone;
 
 -- Saved items table
 create table if not exists saved_items (

@@ -126,7 +126,10 @@ export default function OnboardingPage() {
               xp: 50,
               last_active: new Date().toISOString().split("T")[0],
               streak: 1,
-              profile_strength: calculateStrength(data),
+              // Profile strength starts at 0 — the AI will compute the real score
+              // based on grades, activities, awards, and essays. Filling out
+              // fields doesn't make you strong; doing things does.
+              profile_strength: 0,
             }).eq("id", user.id);
             // Kick off AI profile strength calculation in the background —
             // don't block onboarding on it. We need a fresh session.
@@ -387,19 +390,5 @@ function parseCurrentActivities(raw: string): { name: string; description?: stri
     });
 }
 
-function calculateStrength(data: OnboardingData): number {
-  let score = 0;
-  if (data.name) score += 10;
-  if (data.grade) score += 10;
-  if (data.country) score += 5;
-  if (data.target_country) score += 5;
-  if (data.dream_college) score += 10;
-  if (data.aiming_level) score += 10;
-  if (data.major_interest) score += 10;
-  if (data.gpa_range) score += 10;
-  if (data.test_scores) score += 10;
-  if (data.extracurricular_interests.length > 0) score += 10;
-  if (data.time_available) score += 5;
-  if (data.biggest_concern) score += 5;
-  return Math.min(score, 100);
-}
+// Note: we no longer compute profile strength client-side from onboarding.
+// The AI-powered /api/profile-strength route is the source of truth.

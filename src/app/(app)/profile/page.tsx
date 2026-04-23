@@ -21,23 +21,6 @@ const GPA_RANGES = ["Below 2.5", "2.5 - 3.0", "3.0 - 3.5", "3.5 - 3.8", "3.8 - 4
 const EC_INTERESTS = ["Sports", "Arts", "Tech", "Research", "Community Service", "Business", "Writing", "Music", "Science", "Math", "Other"];
 const TIME_OPTIONS = ["Less than 2 hours", "2-5 hours", "5-10 hours", "10+ hours"];
 
-// Compute profile strength based on how many fields are filled
-function computeProfileStrength(p: Record<string, unknown>): number {
-  const fields = [
-    "name", "grade", "country", "target_country", "dream_college",
-    "aiming_level", "major_interest", "gpa_range", "test_scores", "time_available",
-    "biggest_concern",
-  ];
-  let filled = 0;
-  for (const f of fields) {
-    if (p[f] && String(p[f]).trim()) filled++;
-  }
-  // Extracurricular interests count as a field too
-  if (Array.isArray(p.extracurricular_interests) && (p.extracurricular_interests as string[]).length > 0) filled++;
-  const total = fields.length + 1; // +1 for EC interests
-  return Math.round((filled / total) * 100);
-}
-
 export default function ProfilePage() {
   const { profile, refreshProfile, user, loading } = useAuth();
   const router = useRouter();
@@ -47,9 +30,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (profile) {
-      // Compute profile strength client-side so it's always up to date
-      const strength = computeProfileStrength(profile as unknown as Record<string, unknown>);
-      setLocalProfile({ ...profile, profile_strength: strength });
+      setLocalProfile(profile);
     }
   }, [profile]);
 
@@ -123,22 +104,31 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Profile Strength */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Shield className="w-5 h-5 text-purple" />
-          <h2 className="font-heading font-semibold text-text-primary">Profile Strength</h2>
-        </div>
-        <ProgressBar
-          value={localProfile.profile_strength}
-          variant={localProfile.profile_strength >= 80 ? "pop" : "accent"}
-          size="lg"
-          showLabel
-        />
-        {localProfile.profile_strength < 80 && (
-          <p className="text-text-muted text-xs mt-2">Complete more fields to strengthen your profile and get better recommendations.</p>
-        )}
-      </motion.div>
+      {/* Profile Strength summary — details + recalculation live in the Progress tab */}
+      <Link href="/progress" className="block">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          whileHover={{ y: -2 }}
+          className="glass-card p-6 hover:border-purple/20 transition-colors"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Shield className="w-5 h-5 text-purple" />
+              <h2 className="font-heading font-semibold text-text-primary">Profile Strength</h2>
+            </div>
+            <span className="font-heading font-bold text-2xl text-text-primary">{localProfile.profile_strength}%</span>
+          </div>
+          <ProgressBar
+            value={localProfile.profile_strength}
+            variant={localProfile.profile_strength >= 70 ? "pop" : localProfile.profile_strength >= 40 ? "accent" : "purple"}
+            size="md"
+          />
+          <p className="text-text-muted text-xs mt-2">
+            Update grades, activities, and awards in the Progress tab to improve this score.
+          </p>
+        </motion.div>
+      </Link>
 
       {/* Editable fields */}
       <div className="glass-card p-6 space-y-6">

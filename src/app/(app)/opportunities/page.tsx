@@ -10,7 +10,7 @@ import { competitions as allCompetitions } from "@/lib/competitions";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import { CardSkeleton } from "@/components/ui/Skeleton";
-import { GraduationCap, Trophy, Award, Search, Bookmark, MapPin, BarChart3, TrendingUp, Sparkles, RotateCw } from "lucide-react";
+import { GraduationCap, Trophy, Award, Search, Bookmark, MapPin, BarChart3, TrendingUp, Sparkles, RotateCw, ExternalLink } from "lucide-react";
 import ProgressBar from "@/components/ui/ProgressBar";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -241,7 +241,7 @@ export default function OpportunitiesPage() {
                 </div>
                 <p className="text-purple font-heading font-bold text-lg mb-1">{s.amount}</p>
                 <p className="text-text-muted text-xs mb-3">{s.description}</p>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex gap-1 flex-wrap">
                     {s.tags.map((tag) => (
                       <Badge key={tag} variant="muted">{tag}</Badge>
@@ -249,6 +249,16 @@ export default function OpportunitiesPage() {
                   </div>
                   <span className="text-text-muted text-xs">Due: {s.deadline}</span>
                 </div>
+                {s.url && s.url !== "#" && (
+                  <a
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-purple hover:text-purple-light text-xs font-medium transition-colors"
+                  >
+                    Visit official site <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
               </motion.div>
             ))}
           </div>
@@ -284,12 +294,22 @@ export default function OpportunitiesPage() {
                   </button>
                 </div>
                 <p className="text-text-muted text-xs mb-3">{c.description}</p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 mb-3">
                   <Badge variant="accent">{c.field}</Badge>
                   <Badge variant={c.difficulty === "Advanced" ? "warning" : c.difficulty === "Intermediate" ? "accent" : "muted"}>
                     {c.difficulty}
                   </Badge>
                 </div>
+                {c.url && c.url !== "#" && (
+                  <a
+                    href={c.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-purple hover:text-purple-light text-xs font-medium transition-colors"
+                  >
+                    Visit official site <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
               </motion.div>
             ))}
           </div>

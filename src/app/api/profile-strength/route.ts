@@ -33,8 +33,12 @@ Be HONEST and REALISTIC — this is not a pep talk. If they've done almost nothi
 Weigh these factors:
 - Academics (GPA, test scores) — 35% of overall
 - Activities & leadership (current_activities, completed_activities, extracurricular interests) — 35%
-- Achievements & awards (from detailed_profile or activities) — 20%
-- Essay readiness & personal story (from detailed_profile if available) — 10%
+- Achievements & awards — 20%. Score this dimension based on the AWARDS LIST only, weighted by prestige: International/National-level (IMO/IOI/USAMO/Intel ISEF/Regeneron STS) → 80–100. State/Provincial → 50–70. Regional → 30–50. School-only → 10–25. No awards → 0–10.
+- Essay readiness — 10%. If the student has an essay_score from AI review, use it directly. If no essay has been submitted yet, set essays to 0 and state clearly in the explanation that essays are unrated until submitted.
+
+IMPORTANT — suggestions MUST be high-level admissions priorities only: grades/GPA, standardized test prep (SAT/ACT), building a deeper/longer-term activity, winning a notable award, writing a stronger personal narrative, essay work. Do NOT name specific extracurricular programs, clubs, competitions, or projects — that is handled in a separate Activities tab. Keep suggestions abstract and category-level (e.g. "Push your GPA above 3.9 — academics carry the most weight", "Aim for at least one regional-or-higher award this year", "Start drafting your personal narrative early"). NEVER write suggestions like "Join Science Olympiad" or "Start a nonprofit".
+
+If the student has submitted NO essay yet, set "essays" to 0 and note that the essay component is unrated until they submit one for review.
 
 Return ONLY valid JSON (no markdown, no backticks, no prose) with this exact shape:
 {
@@ -44,7 +48,7 @@ Return ONLY valid JSON (no markdown, no backticks, no prose) with this exact sha
   "achievements": <integer 0-100>,
   "essays": <integer 0-100>,
   "explanation": "<2-3 sentence honest assessment>",
-  "suggestions": ["<specific suggestion>", "<specific suggestion>", "<specific suggestion>"],
+  "suggestions": ["<high-level priority>", "<high-level priority>", "<high-level priority>"],
   "target_college": "${target}"
 }`;
 
@@ -66,6 +70,7 @@ Return ONLY valid JSON (no markdown, no backticks, no prose) with this exact sha
         profile_strength: overall,
         profile_strength_breakdown: breakdown,
         profile_strength_updated_at: new Date().toISOString(),
+        xp: (profile.xp || 0) + 5, // +5 XP per recalc — matches XP_SOURCES
       })
       .eq("id", user.id);
 

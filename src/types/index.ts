@@ -30,8 +30,27 @@ export interface Profile {
   completed_activities: CompletedActivity[] | null;
   profile_strength_breakdown: ProfileStrengthBreakdown | null;
   profile_strength_updated_at: string | null;
+  awards: Award[] | null;
+  essay_text: string | null;
+  essay_score: number | null;
+  essay_feedback: EssayFeedback | null;
+  essay_last_reviewed_at: string | null;
   onboarding_completed: boolean;
   created_at: string;
+}
+
+export interface Award {
+  name: string;
+  level?: "International" | "National" | "State" | "Regional" | "School" | "Other";
+  year?: string;
+  description?: string;
+}
+
+export interface EssayFeedback {
+  strengths: string[];
+  weaknesses: string[];
+  rewrite_suggestions: string[];
+  overall: string; // 1-2 sentence honest summary
 }
 
 export interface CurrentActivity {
@@ -151,13 +170,25 @@ export interface Competition {
   url: string;
 }
 
+// Grade-agnostic progression levels — tied to engagement/accomplishments, not grade
 export const XP_LEVELS = [
-  { name: "Freshman", xp: 0 },
-  { name: "Sophomore", xp: 100 },
-  { name: "Junior", xp: 300 },
-  { name: "Senior", xp: 600 },
-  { name: "Applicant", xp: 1000 },
-  { name: "Accepted", xp: 2000 },
+  { name: "Explorer", xp: 0 },
+  { name: "Builder", xp: 100 },
+  { name: "Challenger", xp: 300 },
+  { name: "Contender", xp: 600 },
+  { name: "Standout", xp: 1000 },
+  { name: "Trailblazer", xp: 2000 },
+] as const;
+
+// How users earn XP — keep in sync with actual code that grants XP
+export const XP_SOURCES = [
+  { action: "Complete onboarding", xp: 50, note: "One-time" },
+  { action: "Log in daily (streak)", xp: 10, note: "Each day" },
+  { action: "Mark an activity complete", xp: 25, note: "Per activity" },
+  { action: "Add a new award", xp: 15, note: "Per award" },
+  { action: "Submit an essay for review", xp: 30, note: "Weekly cap (Pro)" },
+  { action: "Send a message to AI counselor", xp: 2, note: "Per message" },
+  { action: "Recalculate profile strength", xp: 5, note: "Per recalc" },
 ] as const;
 
 type XPLevel = typeof XP_LEVELS[number];

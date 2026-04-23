@@ -48,6 +48,19 @@ export function buildProfilePrompt(profile: Profile): string {
     ? `\n\nStudent's Actual Track Record:\n${currentActivities ? `Current/Past Activities:\n${currentActivities}\n` : ""}${completedActivities ? `Activities Completed via Pathly:\n${completedActivities}\n` : ""}Use this to ground your advice in what they've actually done — don't recommend things they're already doing unless suggesting how to go deeper.`
     : "\n\nStudent has not yet logged any concrete activities or achievements.";
 
+  // Awards — weight by level (International > National > State > Regional > School)
+  const awards = (profile.awards || [])
+    .map((a) => `- ${sanitize(a.name)}${a.level ? ` [${sanitize(a.level)}]` : ""}${a.year ? ` (${sanitize(a.year)})` : ""}${a.description ? ` — ${sanitize(a.description)}` : ""}`)
+    .join("\n");
+  const awardsSection = awards
+    ? `\n\nAwards & Achievements:\n${awards}\nWeight these HEAVILY by prestige: International > National > State/Provincial > Regional > School. An IOI/IMO gold, USAMO, Intel ISEF grand prize, Regeneron STS top-10, or similar international/national-level award is transformative for top-20 college admissions. A school-level award barely moves the needle. Be honest about this tier.`
+    : "\n\nStudent has no awards logged yet.";
+
+  // Essay review status
+  const essayStatus = profile.essay_score != null
+    ? `\n\nEssay: Submitted for review — AI score ${profile.essay_score}/100. Last reviewed ${profile.essay_last_reviewed_at || "recently"}.`
+    : "\n\nEssay: Not yet submitted for AI review.";
+
   // Pro-only detailed profile fields
   const detailedProfile = profile.detailed_profile as Record<string, string> | null;
 
@@ -86,7 +99,7 @@ Student Profile:
 - Extracurricular Interests: ${ecInterests}
 - Time Available Per Week: ${timeAvailable}
 - Biggest Concern: ${biggestConcern}
-- Pro Member: ${profile.is_pro ? "Yes" : "No"}${activitiesSection}${detailedSection}
+- Pro Member: ${profile.is_pro ? "Yes" : "No"}${activitiesSection}${awardsSection}${essayStatus}${detailedSection}
 
 Guidelines:
 - Address the student by name (${name || "their name"}) to make it personal

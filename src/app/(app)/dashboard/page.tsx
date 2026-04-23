@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/auth-context";
-import { getXPLevel } from "@/types";
+import { getXPLevel, XP_SOURCES } from "@/types";
 import ProgressBar from "@/components/ui/ProgressBar";
 import Badge from "@/components/ui/Badge";
 import { CardSkeleton } from "@/components/ui/Skeleton";
-import { Flame, Target, BookmarkCheck, MessageSquare, Zap, TrendingUp, Star } from "lucide-react";
+import { Flame, Target, BookmarkCheck, MessageSquare, Zap, TrendingUp, Star, Info } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 
@@ -110,14 +110,17 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* XP Level */}
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={2} className="glass-card p-6">
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={2} className="glass-card p-6 relative group">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-purple/10 flex items-center justify-center">
                 <Zap className="w-6 h-6 text-purple" />
               </div>
               <div>
-                <p className="text-text-muted text-sm">Level</p>
+                <p className="text-text-muted text-sm flex items-center gap-1.5">
+                  Level
+                  <Info className="w-3 h-3 text-text-muted/50 group-hover:text-purple transition-colors" />
+                </p>
                 <p className="font-heading font-bold text-xl text-text-primary">{xpInfo.current.name}</p>
               </div>
             </div>
@@ -130,6 +133,18 @@ export default function DashboardPage() {
             label={xpInfo.next ? `${xpInfo.next.xp - profile.xp} XP to ${xpInfo.next.name}` : "Max Level!"}
             showLabel
           />
+          {/* Hover: how to earn XP */}
+          <div className="absolute top-full right-0 mt-2 w-72 bg-surface border border-white/10 rounded-card p-4 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-30 pointer-events-none">
+            <p className="text-text-primary text-xs font-semibold uppercase tracking-wide mb-2">How to earn XP</p>
+            <ul className="space-y-1.5">
+              {XP_SOURCES.map((s) => (
+                <li key={s.action} className="flex items-center justify-between text-xs">
+                  <span className="text-text-muted">{s.action}</span>
+                  <span className="text-purple font-semibold">+{s.xp}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </motion.div>
       </div>
 
@@ -149,14 +164,19 @@ export default function DashboardPage() {
       {/* Quick Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Profile Strength", value: `${profile.profile_strength}%`, icon: TrendingUp, color: "text-accent" },
-          { label: "Items Saved", value: savedCount === null ? "—" : String(savedCount), icon: BookmarkCheck, color: "text-pop" },
-          { label: "Messages Used", value: `${messagesUsed}/${messagesMax}`, icon: MessageSquare, color: "text-orange-400" },
+          { label: "Profile Strength", value: `${profile.profile_strength}%`, icon: TrendingUp, color: "text-accent", href: "/progress" },
+          { label: "Items Saved", value: savedCount === null ? "—" : String(savedCount), icon: BookmarkCheck, color: "text-pop", href: "/saved" },
+          { label: "Messages Used", value: `${messagesUsed}/${messagesMax}`, icon: MessageSquare, color: "text-orange-400", href: "/counselor" },
         ].map((stat, i) => (
-          <motion.div key={stat.label} initial="hidden" animate="visible" variants={fadeUp} custom={4 + i} className="glass-card p-4 md:p-6 text-center">
-            <stat.icon className={`w-5 h-5 ${stat.color} mx-auto mb-2`} />
-            <p className="font-heading font-bold text-xl text-text-primary">{stat.value}</p>
-            <p className="text-text-muted text-xs mt-1">{stat.label}</p>
+          <motion.div key={stat.label} initial="hidden" animate="visible" variants={fadeUp} custom={4 + i}>
+            <Link
+              href={stat.href}
+              className="glass-card p-4 md:p-6 text-center block hover:border-purple/30 hover:-translate-y-0.5 transition-all"
+            >
+              <stat.icon className={`w-5 h-5 ${stat.color} mx-auto mb-2`} />
+              <p className="font-heading font-bold text-xl text-text-primary">{stat.value}</p>
+              <p className="text-text-muted text-xs mt-1">{stat.label}</p>
+            </Link>
           </motion.div>
         ))}
       </div>
