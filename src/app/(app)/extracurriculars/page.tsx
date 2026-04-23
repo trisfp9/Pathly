@@ -434,7 +434,7 @@ export default function ExtracurricularsPage() {
                     Unlock the full roadmap
                   </h3>
                   <p className="text-text-muted text-sm mb-6 max-w-md mx-auto">
-                    Get real competition names, specific project ideas, week-by-week plans, and Common App writing tips.
+                    Get specific project ideas, week-by-week plans, and Common App writing tips tailored to your profile.
                   </p>
                   <Link href="/pricing">
                     <Button variant="pop">Upgrade to Pro</Button>

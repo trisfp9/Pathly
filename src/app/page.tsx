@@ -466,7 +466,7 @@ const FAQSection = () => {
               <AnimatePresence>
                 {openIndex === index && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }} className="overflow-hidden">
-                    <div className="p-6 pt-0 text-white/70">{faq.answer}</div>
+                    <div className="px-6 pt-4 pb-6 text-white/70 border-t border-white/[0.08]">{faq.answer}</div>
                   </motion.div>
                 )}
               </AnimatePresence>
