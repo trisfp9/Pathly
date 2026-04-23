@@ -69,11 +69,6 @@ export function buildProfilePrompt(profile: Profile): string {
     detailedSection = `
 
 Detailed Student Background (Pro Profile):
-- Current Activities: ${sanitize(detailedProfile.current_activities)}
-- Achievements & Awards: ${sanitize(detailedProfile.achievements)}
-- Leadership Roles: ${sanitize(detailedProfile.leadership)}
-- Work/Internship Experience: ${sanitize(detailedProfile.work_experience)}
-- Community Service: ${sanitize(detailedProfile.community_service)}
 - Personal Strengths: ${sanitize(detailedProfile.strengths)}
 - Areas for Improvement: ${sanitize(detailedProfile.weaknesses)}
 - Essay Topics / Personal Story: ${sanitize(detailedProfile.personal_story)}
@@ -81,7 +76,9 @@ Detailed Student Background (Pro Profile):
 - Financial Situation: ${sanitize(detailedProfile.financial_situation)}
 - Special Circumstances: ${sanitize(detailedProfile.special_circumstances)}
 
-Use this detailed information to give highly personalized, specific advice. Reference their actual activities and experiences when relevant.`;
+(Activities, achievements, leadership, work experience, and community service are captured as structured data in the Activities & Awards sections above — use those, not free-form prose here.)
+
+Use this detailed narrative information to give highly personalized, specific advice. Reference their actual experiences when relevant.`;
   }
 
   return `You are Pathly AI, a warm, expert college admissions counselor for high school students. You know this student personally — use their name and reference their specific situation.

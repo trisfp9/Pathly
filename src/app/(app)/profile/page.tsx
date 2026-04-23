@@ -292,11 +292,9 @@ import { Profile } from "@/types";
 import { FileText } from "lucide-react";
 
 const DETAILED_FIELDS: { key: string; label: string; placeholder: string; hint: string }[] = [
-  { key: "current_activities", label: "Current Activities & Clubs", placeholder: "e.g., Math team captain, debate club, volunteer at local hospital...", hint: "List everything you're currently involved in, with your role." },
-  { key: "achievements", label: "Achievements & Awards", placeholder: "e.g., State math competition 2nd place, Honor Roll...", hint: "Include academic, extracurricular, and any other awards." },
-  { key: "leadership", label: "Leadership Roles", placeholder: "e.g., Student council VP, founded coding club...", hint: "Any positions where you led, organized, or managed others." },
-  { key: "work_experience", label: "Work & Internship Experience", placeholder: "e.g., Summer internship at tech startup, tutoring...", hint: "Paid or unpaid work, internships, research positions." },
-  { key: "community_service", label: "Community Service & Volunteering", placeholder: "e.g., 200+ hours at food bank, organized charity drive...", hint: "Include hours if you know them." },
+  // Activities, achievements, leadership, work experience, and community service
+  // now live in the Progress tab as structured data (with role, hours, duration,
+  // prestige level) — removed from here to avoid duplication.
   { key: "strengths", label: "Personal Strengths", placeholder: "e.g., Strong analytical thinking, good at public speaking...", hint: "What are you genuinely good at? Be honest." },
   { key: "weaknesses", label: "Areas for Improvement", placeholder: "e.g., Need to improve time management, limited research experience...", hint: "The AI will help you address these specifically." },
   { key: "personal_story", label: "Personal Story / Essay Topics", placeholder: "e.g., Overcame language barrier as an immigrant, started a business at 14...", hint: "What makes you unique? Any challenges you've overcome?" },

@@ -9,7 +9,7 @@ import { getXPLevel, XP_SOURCES } from "@/types";
 import ProgressBar from "@/components/ui/ProgressBar";
 import Badge from "@/components/ui/Badge";
 import { CardSkeleton } from "@/components/ui/Skeleton";
-import { Flame, Target, BookmarkCheck, MessageSquare, Zap, TrendingUp, Star, Info } from "lucide-react";
+import { Flame, Target, BookmarkCheck, MessageSquare, Zap, TrendingUp, Star, Info, Crown } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 
@@ -116,9 +116,16 @@ export default function DashboardPage() {
     <div className="space-y-8">
       {/* Greeting */}
       <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
-        <h1 className="font-heading font-bold text-3xl md:text-4xl text-text-primary">
-          Hey {profile.name || "there"}, let&apos;s build your path
-        </h1>
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="font-heading font-bold text-3xl md:text-4xl text-text-primary">
+            Hey {profile.name || "there"}, let&apos;s build your path
+          </h1>
+          {profile.is_pro && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-pop/20 to-purple/20 border border-pop/30 text-pop text-xs font-bold uppercase tracking-wider">
+              <Crown className="w-3.5 h-3.5" /> Pro
+            </span>
+          )}
+        </div>
         <p className="text-text-muted mt-2">Your daily progress snapshot</p>
       </motion.div>
 

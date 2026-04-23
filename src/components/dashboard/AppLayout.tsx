@@ -95,7 +95,13 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="space-y-2 pt-4 border-t border-white/5">
-          {!profile?.is_pro && (
+          {profile?.is_pro ? (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-button text-sm font-semibold bg-gradient-to-r from-pop/15 to-purple/15 border border-pop/20">
+              <Crown className="w-5 h-5 text-pop" />
+              <span className="text-text-primary">Pro Member</span>
+              <span className="ml-auto text-[10px] uppercase tracking-wider text-pop font-bold">Active</span>
+            </div>
+          ) : (
             <Link
               href="/pricing"
               className="flex items-center gap-3 px-4 py-3 rounded-button text-sm font-medium text-pop hover:bg-pop/5 transition-colors"
