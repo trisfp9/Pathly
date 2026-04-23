@@ -4,15 +4,14 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/auth-context";
 import { createBrowserClient } from "@/lib/supabase";
-import { CurrentActivity, CompletedActivity, ProfileStrengthBreakdown, Award as AwardType, EssayFeedback } from "@/types";
+import { CurrentActivity, CompletedActivity, ProfileStrengthBreakdown, Award as AwardType } from "@/types";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import ProgressBar from "@/components/ui/ProgressBar";
 import Skeleton from "@/components/ui/Skeleton";
 import {
-  TrendingUp, Sparkles, Plus, Trash2, CheckCircle2, GraduationCap, Award, BookOpen, PenLine, Lock, Crown,
+  TrendingUp, Sparkles, Plus, Trash2, CheckCircle2, GraduationCap, Award, BookOpen, PenLine, Lock,
 } from "lucide-react";
-import Link from "next/link";
 import toast from "react-hot-toast";
 
 const GPA_RANGES = ["Below 2.5", "2.5 - 3.0", "3.0 - 3.5", "3.5 - 3.8", "3.8 - 4.0", "4.0+"];
@@ -27,8 +26,6 @@ export default function ProgressPage() {
   const [newActivity, setNewActivity] = useState<CurrentActivity>({ name: "", description: "", role: "", hours_per_week: "", years: "" });
   const [awards, setAwards] = useState<AwardType[]>([]);
   const [newAward, setNewAward] = useState<AwardType>({ name: "", level: "School", year: "", description: "" });
-  const [essayDraft, setEssayDraft] = useState("");
-  const [essaySubmitting, setEssaySubmitting] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -36,7 +33,6 @@ export default function ProgressPage() {
       setTestScores(profile.test_scores || "");
       setActivities(profile.current_activities || []);
       setAwards(profile.awards || []);
-      setEssayDraft(profile.essay_text || "");
     }
   }, [profile]);
 
@@ -76,36 +72,6 @@ export default function ProgressPage() {
   const removeAward = async (idx: number) => {
     const next = awards.filter((_, i) => i !== idx);
     await saveAwards(next);
-  };
-
-  const submitEssay = async () => {
-    if (!session?.access_token) return;
-    if (essayDraft.trim().length < 100) {
-      toast.error("Essay must be at least 100 characters.");
-      return;
-    }
-    setEssaySubmitting(true);
-    try {
-      const res = await fetch("/api/essay-review", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ essay: essayDraft }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.error || "Review failed.");
-        return;
-      }
-      await refreshProfile();
-      toast.success(`Essay reviewed — score ${data.score}/100. +30 XP`);
-    } catch {
-      toast.error("Review failed.");
-    } finally {
-      setEssaySubmitting(false);
-    }
   };
 
   const saveAcademics = async () => {
@@ -199,11 +165,6 @@ export default function ProgressPage() {
   const breakdown = profile.profile_strength_breakdown as ProfileStrengthBreakdown | null;
   const strength = profile.profile_strength || 0;
   const completed: CompletedActivity[] = profile.completed_activities || [];
-  const essayFeedback = profile.essay_feedback as EssayFeedback | null;
-  const essayScore = profile.essay_score;
-  const essayLast = profile.essay_last_reviewed_at ? new Date(profile.essay_last_reviewed_at) : null;
-  const essayNextAt = essayLast ? new Date(essayLast.getTime() + 7 * 24 * 3_600_000) : null;
-  const essayCanSubmit = !essayNextAt || Date.now() >= essayNextAt.getTime();
 
   return (
     <div className="space-y-8 max-w-3xl">
@@ -256,7 +217,7 @@ export default function ProgressPage() {
               <BreakdownTile label="Academics" value={breakdown.academics} icon={GraduationCap} />
               <BreakdownTile label="Activities" value={breakdown.activities} icon={BookOpen} />
               <BreakdownTile label="Achievements" value={breakdown.achievements} icon={Award} />
-              <BreakdownTile label="Essays" value={breakdown.essays} icon={PenLine} />
+              <BreakdownTile label="Essays" value={breakdown.essays} icon={PenLine} locked={!profile.is_pro} />
             </div>
             {breakdown.explanation && (
               <p className="text-text-muted text-sm leading-relaxed">{breakdown.explanation}</p>
@@ -492,79 +453,6 @@ export default function ProgressPage() {
         </div>
       </div>
 
-      {/* Essay Review (Pro) */}
-      <div className="glass-card p-6 space-y-4">
-        <div className="flex items-center gap-3">
-          <PenLine className="w-5 h-5 text-purple" />
-          <h2 className="font-heading font-semibold text-text-primary">Essay Review</h2>
-          <Badge variant="pop">Pro</Badge>
-          <span className="text-text-muted/60 text-xs">1 submission per week</span>
-        </div>
-
-        {!profile.is_pro ? (
-          <div className="bg-white/5 rounded-button p-5 border border-white/10 text-center space-y-3">
-            <Lock className="w-8 h-8 text-text-muted mx-auto" />
-            <p className="text-text-primary font-medium">Unlock AI Essay Review</p>
-            <p className="text-text-muted text-sm max-w-md mx-auto">
-              Submit a personal statement or supplement and get a brutally honest, detailed AI critique every week — the kind of
-              feedback that actually lifts your essay score.
-            </p>
-            <Link href="/pricing">
-              <Button variant="pop" size="sm">
-                <Crown className="w-4 h-4" /> Upgrade to Pro
-              </Button>
-            </Link>
-          </div>
-        ) : (
-          <>
-            {essayScore != null && essayFeedback && (
-              <div className="bg-white/5 rounded-button p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-text-muted text-xs">Latest essay score</p>
-                    <p className="font-heading font-bold text-3xl text-text-primary">{essayScore}<span className="text-text-muted text-base">/100</span></p>
-                  </div>
-                  <div className="text-right text-xs text-text-muted/70">
-                    {essayLast && `Reviewed ${essayLast.toLocaleDateString()}`}
-                  </div>
-                </div>
-                {essayFeedback.overall && (
-                  <p className="text-text-muted text-sm italic">&ldquo;{essayFeedback.overall}&rdquo;</p>
-                )}
-                <div className="grid md:grid-cols-3 gap-3">
-                  <FeedbackList title="Strengths" color="text-pop" items={essayFeedback.strengths} />
-                  <FeedbackList title="Weaknesses" color="text-orange-400" items={essayFeedback.weaknesses} />
-                  <FeedbackList title="Rewrite ideas" color="text-purple" items={essayFeedback.rewrite_suggestions} />
-                </div>
-              </div>
-            )}
-
-            <textarea
-              value={essayDraft}
-              onChange={(e) => setEssayDraft(e.target.value)}
-              placeholder="Paste your essay here (100–8,000 characters)..."
-              rows={10}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-button text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:border-purple/50 text-sm resize-y"
-            />
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <p className="text-text-muted/60 text-xs">
-                {essayDraft.length} chars
-                {!essayCanSubmit && essayNextAt && ` · next submission ${essayNextAt.toLocaleDateString()}`}
-              </p>
-              <Button
-                variant="purple"
-                size="sm"
-                onClick={submitEssay}
-                loading={essaySubmitting}
-                disabled={!essayCanSubmit || essaySubmitting}
-              >
-                <Sparkles className="w-4 h-4" /> {essaySubmitting ? "Grading..." : "Submit for review"}
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-
       {/* Completed via Pathly */}
       {completed.length > 0 && (
         <div className="glass-card p-6 space-y-3">
@@ -592,26 +480,13 @@ export default function ProgressPage() {
   );
 }
 
-function FeedbackList({ title, color, items }: { title: string; color: string; items: string[] }) {
-  if (!items || items.length === 0) return null;
+function BreakdownTile({ label, value, icon: Icon, locked }: { label: string; value: number; icon: React.ComponentType<{ className?: string }>; locked?: boolean }) {
   return (
-    <div className="bg-white/5 rounded-button p-3">
-      <p className={`text-xs font-semibold uppercase tracking-wide mb-1.5 ${color}`}>{title}</p>
-      <ul className="space-y-1">
-        {items.map((s, i) => (
-          <li key={i} className="text-text-muted text-xs leading-relaxed">• {s}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function BreakdownTile({ label, value, icon: Icon }: { label: string; value: number; icon: React.ComponentType<{ className?: string }> }) {
-  return (
-    <div className="bg-white/5 rounded-button p-3">
+    <div className={`bg-white/5 rounded-button p-3 relative ${locked ? "opacity-70" : ""}`}>
       <div className="flex items-center gap-2 mb-2">
         <Icon className="w-3.5 h-3.5 text-purple" />
         <span className="text-text-muted text-xs">{label}</span>
+        {locked && <Lock className="w-3 h-3 text-text-muted/60 ml-auto" />}
       </div>
       <div className="flex items-baseline gap-1">
         <span className="font-heading font-bold text-xl text-text-primary">{value}</span>

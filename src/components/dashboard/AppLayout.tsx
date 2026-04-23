@@ -9,18 +9,19 @@ import { createBrowserClient } from "@/lib/supabase";
 import { updateStreak } from "@/lib/streak";
 import {
   LayoutDashboard, BookOpen, MessageSquare, Compass, User, LogOut,
-  Crown, ChevronLeft, Menu, Bookmark, TrendingUp,
+  Crown, ChevronLeft, Menu, Bookmark, TrendingUp, PenLine, Lock,
 } from "lucide-react";
 import Skeleton from "@/components/ui/Skeleton";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/extracurriculars", label: "Activities", icon: BookOpen },
-  { href: "/progress", label: "Progress", icon: TrendingUp },
-  { href: "/counselor", label: "Counselor", icon: MessageSquare },
-  { href: "/opportunities", label: "Discover", icon: Compass },
-  { href: "/saved", label: "Saved", icon: Bookmark },
-  { href: "/profile", label: "Profile", icon: User },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, pro: false },
+  { href: "/extracurriculars", label: "Activities", icon: BookOpen, pro: false },
+  { href: "/progress", label: "Progress", icon: TrendingUp, pro: false },
+  { href: "/essay", label: "Essay", icon: PenLine, pro: true },
+  { href: "/counselor", label: "Counselor", icon: MessageSquare, pro: false },
+  { href: "/opportunities", label: "Discover", icon: Compass, pro: false },
+  { href: "/saved", label: "Saved", icon: Bookmark, pro: false },
+  { href: "/profile", label: "Profile", icon: User, pro: false },
 ];
 
 function AppLayoutInner({ children }: { children: ReactNode }) {
@@ -74,6 +75,7 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
         <nav className="flex-1 space-y-1">
           {navItems.map((item) => {
             const active = pathname === item.href;
+            const showLock = item.pro && !profile?.is_pro;
             return (
               <Link
                 key={item.href}
@@ -85,7 +87,8 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
                 }`}
               >
                 <item.icon className="w-5 h-5" />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {showLock && <Lock className="w-3.5 h-3.5 text-pop/70" />}
               </Link>
             );
           })}
@@ -138,6 +141,7 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
               <nav className="space-y-1">
                 {navItems.map((item) => {
                   const active = pathname === item.href;
+                  const showLock = item.pro && !profile?.is_pro;
                   return (
                     <Link
                       key={item.href}
@@ -148,7 +152,8 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
                       }`}
                     >
                       <item.icon className="w-5 h-5" />
-                      {item.label}
+                      <span className="flex-1">{item.label}</span>
+                      {showLock && <Lock className="w-3.5 h-3.5 text-pop/70" />}
                     </Link>
                   );
                 })}
