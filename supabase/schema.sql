@@ -79,20 +79,31 @@ create table if not exists chat_messages (
 create index if not exists idx_saved_items_user_id on saved_items(user_id);
 create index if not exists idx_chat_messages_user_created on chat_messages(user_id, created_at);
 
--- Row Level Security
+-- Row Level Security (idempotent — drop-then-create so this file can be re-run safely)
 alter table profiles enable row level security;
+drop policy if exists "Users can view own profile" on profiles;
+drop policy if exists "Users can update own profile" on profiles;
+drop policy if exists "Users can insert own profile" on profiles;
+drop policy if exists "Users can delete own profile" on profiles;
 create policy "Users can view own profile" on profiles for select using (auth.uid() = id);
 create policy "Users can update own profile" on profiles for update using (auth.uid() = id);
 create policy "Users can insert own profile" on profiles for insert with check (auth.uid() = id);
 create policy "Users can delete own profile" on profiles for delete using (auth.uid() = id);
 
 alter table saved_items enable row level security;
+drop policy if exists "Users can view own saved items" on saved_items;
+drop policy if exists "Users can insert own saved items" on saved_items;
+drop policy if exists "Users can update own saved items" on saved_items;
+drop policy if exists "Users can delete own saved items" on saved_items;
 create policy "Users can view own saved items" on saved_items for select using (auth.uid() = user_id);
 create policy "Users can insert own saved items" on saved_items for insert with check (auth.uid() = user_id);
 create policy "Users can update own saved items" on saved_items for update using (auth.uid() = user_id);
 create policy "Users can delete own saved items" on saved_items for delete using (auth.uid() = user_id);
 
 alter table chat_messages enable row level security;
+drop policy if exists "Users can view own messages" on chat_messages;
+drop policy if exists "Users can insert own messages" on chat_messages;
+drop policy if exists "Users can delete own messages" on chat_messages;
 create policy "Users can view own messages" on chat_messages for select using (auth.uid() = user_id);
 create policy "Users can insert own messages" on chat_messages for insert with check (auth.uid() = user_id);
 create policy "Users can delete own messages" on chat_messages for delete using (auth.uid() = user_id);
