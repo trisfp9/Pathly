@@ -35,6 +35,7 @@ export interface Profile {
   essay_score: number | null;
   essay_feedback: EssayFeedback | null;
   essay_last_reviewed_at: string | null;
+  roadmaps: SavedRoadmap[] | null;
   onboarding_completed: boolean;
   created_at: string;
 }
@@ -95,6 +96,28 @@ export interface ExtracurricularRoadmap {
   weekly_plan: { week: number; tasks: string[] }[];
   weekly_hours: string;
   common_app_tip: string;
+}
+
+// Persisted per-user roadmap with a checklist and a chosen project idea.
+export interface SavedRoadmap {
+  id: string;
+  category: string;
+  project_idea: string;              // user-chosen or custom
+  project_idea_options: string[];    // 4 AI-proposed options at creation time
+  competitions: { name: string; description: string; deadline?: string }[];
+  tasks: RoadmapTask[];
+  weekly_hours: string;
+  common_app_tip: string;
+  status: "planning" | "active" | "completed";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoadmapTask {
+  id: string;
+  description: string;
+  week: number;
+  done: boolean;
 }
 
 export interface CollegeList {

@@ -82,21 +82,46 @@ export async function POST(request: Request) {
     });
   }
 
+  // If the client is referring to a specific roadmap, append it as an extra system block
+  const roadmapId: string | undefined = typeof body.roadmap_id === "string" ? body.roadmap_id : undefined;
+  const focusedRoadmap = roadmapId && Array.isArray(profile.roadmaps)
+    ? profile.roadmaps.find((r: { id: string }) => r.id === roadmapId)
+    : null;
+
   // Stream response
   try {
     const anthropic = getAnthropicClient();
+
+    const systemBlocks: Anthropic.TextBlockParam[] = [
+      {
+        type: "text",
+        text: buildProfilePrompt(profile),
+        cache_control: { type: "ephemeral" },
+      },
+    ];
+
+    if (focusedRoadmap) {
+      systemBlocks.push({
+        type: "text",
+        text: `The student is currently asking about this specific roadmap. Ground your answer in it — reference their project, tasks, and timeline.
+
+Roadmap: ${focusedRoadmap.category}
+Project idea: ${focusedRoadmap.project_idea}
+Weekly hours: ${focusedRoadmap.weekly_hours}
+Competitions: ${JSON.stringify(focusedRoadmap.competitions)}
+Tasks (with done state):
+${focusedRoadmap.tasks.map((t: { week: number; description: string; done: boolean }) => `- [week ${t.week}] ${t.done ? "✓" : "○"} ${t.description}`).join("\n")}
+Common App tip: ${focusedRoadmap.common_app_tip}
+
+If they want to modify the roadmap itself (swap project, add/remove tasks, reorder weeks), tell them to use the "Ask AI to adjust" button on the roadmap page — that's the channel that edits the roadmap. Here, answer questions and give advice.`,
+      });
+    }
 
     const stream = await anthropic.messages.stream(
       {
         model: "claude-sonnet-4-20250514",
         max_tokens: 1500,
-        system: [
-          {
-            type: "text",
-            text: buildProfilePrompt(profile),
-            cache_control: { type: "ephemeral" },
-          },
-        ],
+        system: systemBlocks,
         messages: sanitizedMessages,
       },
       { signal: AbortSignal.timeout(30000) }

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth-context";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
-import { Send, Sparkles, Lock, AlertCircle } from "lucide-react";
+import { Send, Sparkles, Lock, AlertCircle, Map, X } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
@@ -23,12 +24,25 @@ const starterPrompts = [
 
 export default function CounselorPage() {
   const { profile, session, refreshProfile } = useAuth();
+  const searchParams = useSearchParams();
+  const roadmapId = searchParams.get("roadmap");
+  const roadmapContext = profile?.roadmaps?.find((r) => r.id === roadmapId) ?? null;
+  const [roadmapBannerDismissed, setRoadmapBannerDismissed] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Prefill input when arriving from a roadmap deep-link
+  useEffect(() => {
+    if (roadmapContext && !input) {
+      setInput(`About my "${roadmapContext.category}" roadmap (project: ${roadmapContext.project_idea}): `);
+      inputRef.current?.focus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roadmapId]);
 
   const messagesUsed = profile?.is_pro ? (profile?.ai_messages_this_month ?? 0) : (profile?.ai_messages_used ?? 0);
   const messagesMax = profile?.is_pro ? 500 : 7;
@@ -80,6 +94,7 @@ export default function CounselorPage() {
         },
         body: JSON.stringify({
           messages: [...messages, userMsg].slice(-20), // Last 20 messages for context
+          roadmap_id: roadmapContext?.id,
         }),
         signal: abortController.signal,
       });
@@ -167,6 +182,26 @@ export default function CounselorPage() {
           {messagesUsed}/{messagesMax} messages
         </Badge>
       </div>
+
+      {/* Roadmap context banner */}
+      {roadmapContext && !roadmapBannerDismissed && (
+        <div className="bg-purple/10 border border-purple/20 rounded-button p-3 mb-4 flex items-center gap-3 flex-shrink-0">
+          <Map className="w-4 h-4 text-purple flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-text-primary text-sm font-medium truncate">
+              Discussing: {roadmapContext.category}
+            </p>
+            <p className="text-text-muted text-xs truncate">{roadmapContext.project_idea}</p>
+          </div>
+          <button
+            onClick={() => setRoadmapBannerDismissed(true)}
+            className="text-text-muted hover:text-text-primary flex-shrink-0"
+            aria-label="Dismiss"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Pro warning at 400/500 */}
       {profile.is_pro && messagesUsed >= 400 && messagesUsed < 500 && (

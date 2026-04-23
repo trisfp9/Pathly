@@ -39,6 +39,7 @@ create table if not exists profiles (
   essay_score integer,             -- AI grade 0-100 on latest submission
   essay_feedback jsonb,            -- AI feedback { strengths[], weaknesses[], rewrite_suggestions[] }
   essay_last_reviewed_at timestamp with time zone,
+  roadmaps jsonb,                  -- array of SavedRoadmap objects with task checklists
   onboarding_completed boolean default false,
   created_at timestamp with time zone default now()
 );
@@ -53,6 +54,7 @@ alter table profiles add column if not exists essay_text text;
 alter table profiles add column if not exists essay_score integer;
 alter table profiles add column if not exists essay_feedback jsonb;
 alter table profiles add column if not exists essay_last_reviewed_at timestamp with time zone;
+alter table profiles add column if not exists roadmaps jsonb;
 
 -- Saved items table
 create table if not exists saved_items (
