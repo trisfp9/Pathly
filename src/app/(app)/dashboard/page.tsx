@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 import { useAuth } from "@/lib/auth-context";
 import { getXPLevel, XP_SOURCES } from "@/types";
 import ProgressBar from "@/components/ui/ProgressBar";
@@ -20,10 +22,48 @@ const fadeUp = {
 };
 
 export default function DashboardPage() {
-  const { profile, loading, session, user } = useAuth();
+  const { profile, loading, session, user, refreshProfile } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [tip, setTip] = useState<string | null>(null);
   const [tipLoading, setTipLoading] = useState(true);
   const [savedCount, setSavedCount] = useState<number | null>(null);
+
+  // Fallback Pro activation: if we just came back from a successful checkout,
+  // verify the subscription with Stripe directly and flip is_pro. This way
+  // Pro works even if the webhook didn't fire.
+  useEffect(() => {
+    if (!session?.access_token) return;
+    if (searchParams.get("checkout") !== "success") return;
+
+    const activate = async () => {
+      const toastId = toast.loading("Activating Pro...");
+      try {
+        // Give the webhook a brief chance first
+        await new Promise((r) => setTimeout(r, 1200));
+        await refreshProfile();
+
+        // If webhook already flipped it, we're done
+        const res = await fetch("/api/stripe/verify", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.is_pro) {
+          await refreshProfile();
+          toast.success("Welcome to Pro!", { id: toastId });
+        } else {
+          toast.error("Couldn't verify your subscription yet. Refresh in a minute.", { id: toastId });
+        }
+      } catch {
+        toast.error("Activation check failed.", { id: toastId });
+      } finally {
+        // Strip the query param so refreshing doesn't re-run this
+        router.replace("/dashboard");
+      }
+    };
+    activate();
+  }, [searchParams, session, refreshProfile, router]);
 
   useEffect(() => {
     if (!session?.access_token) return;
