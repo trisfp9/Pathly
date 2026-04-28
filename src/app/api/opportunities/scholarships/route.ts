@@ -20,8 +20,17 @@ export async function POST(request: Request) {
   if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   if (!profile.is_pro) return NextResponse.json({ error: "Pro subscription required." }, { status: 403 });
 
-  const rateCheck = await checkRateLimit(user.id, "opportunities");
-  if (!rateCheck.success) return rateCheck.response!;
+  // Once-per-day limit (DB-backed so it survives server restarts)
+  if (profile.ai_scholarships_cache?.generated_at) {
+    const hoursSince = (Date.now() - new Date(profile.ai_scholarships_cache.generated_at).getTime()) / 3_600_000;
+    if (hoursSince < 24) {
+      const hoursLeft = Math.ceil(24 - hoursSince);
+      return NextResponse.json(
+        { error: `You can regenerate once per day. Try again in ${hoursLeft} hour${hoursLeft === 1 ? "" : "s"}.` },
+        { status: 429 }
+      );
+    }
+  };
 
   try {
     const systemPrompt = buildProfilePrompt(profile) + `

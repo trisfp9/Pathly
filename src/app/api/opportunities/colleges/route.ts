@@ -21,9 +21,21 @@ export async function POST(request: Request) {
 
   if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
 
-  // Check if non-pro user already has a cached list
+  // Free users: always return cache (no regeneration)
   if (!profile.is_pro && profile.college_list_cache) {
     return NextResponse.json({ colleges: profile.college_list_cache });
+  }
+
+  // All users: enforce once-per-day regeneration limit
+  if (profile.college_list_cache?.generated_at) {
+    const hoursSince = (Date.now() - new Date(profile.college_list_cache.generated_at).getTime()) / 3_600_000;
+    if (hoursSince < 24) {
+      const hoursLeft = Math.ceil(24 - hoursSince);
+      return NextResponse.json(
+        { error: `You can regenerate once per day. Try again in ${hoursLeft} hour${hoursLeft === 1 ? "" : "s"}.` },
+        { status: 429 }
+      );
+    }
   }
 
   // Read profile_strength so we can anchor reach/target/safety relative to the student

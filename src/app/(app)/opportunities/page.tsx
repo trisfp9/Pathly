@@ -404,12 +404,27 @@ export default function OpportunitiesPage() {
                   <p className="font-heading font-semibold text-text-primary">AI Picks for You</p>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-purple bg-purple/10 px-2 py-0.5 rounded-full">Pro</span>
                 </div>
-                <Button variant="purple" size="sm" onClick={generateAiScholarships} loading={aiScholarshipsLoading}>
-                  <Sparkles className="w-3.5 h-3.5" />
-                  {aiScholarships ? "Regenerate" : "Generate My Picks"}
-                </Button>
+                <div className="flex flex-col items-end gap-1">
+                  <Button
+                    variant="purple" size="sm"
+                    onClick={generateAiScholarships}
+                    loading={aiScholarshipsLoading}
+                    disabled={aiScholarshipsLoading || cooldownHours(aiScholarships?.generated_at) > 0}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    {aiScholarships ? "Regenerate" : "Generate My Picks"}
+                  </Button>
+                  {cooldownHours(aiScholarships?.generated_at) > 0 && (
+                    <p className="text-text-muted/60 text-[10px]">Next in {cooldownHours(aiScholarships?.generated_at)}h</p>
+                  )}
+                </div>
               </div>
-              <p className="text-text-muted text-xs mb-4">Scholarships matched to your major, country, and profile — not a generic list.</p>
+              <p className="text-text-muted text-xs mb-4">
+                Scholarships matched to your major, country, and profile — not a generic list.
+                {aiScholarships?.generated_at && (
+                  <span className="ml-1 text-text-muted/50">Generated {timeAgo(aiScholarships.generated_at)}.</span>
+                )}
+              </p>
               {aiScholarshipsLoading && (
                 <div className="grid md:grid-cols-2 gap-3">
                   <div className="h-28 bg-white/5 rounded-xl shimmer" />
@@ -484,12 +499,27 @@ export default function OpportunitiesPage() {
                   <p className="font-heading font-semibold text-text-primary">AI Picks for You</p>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-purple bg-purple/10 px-2 py-0.5 rounded-full">Pro</span>
                 </div>
-                <Button variant="purple" size="sm" onClick={generateAiCompetitions} loading={aiCompetitionsLoading}>
-                  <Sparkles className="w-3.5 h-3.5" />
-                  {aiCompetitions ? "Regenerate" : "Generate My Picks"}
-                </Button>
+                <div className="flex flex-col items-end gap-1">
+                  <Button
+                    variant="purple" size="sm"
+                    onClick={generateAiCompetitions}
+                    loading={aiCompetitionsLoading}
+                    disabled={aiCompetitionsLoading || cooldownHours(aiCompetitions?.generated_at) > 0}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    {aiCompetitions ? "Regenerate" : "Generate My Picks"}
+                  </Button>
+                  {cooldownHours(aiCompetitions?.generated_at) > 0 && (
+                    <p className="text-text-muted/60 text-[10px]">Next in {cooldownHours(aiCompetitions?.generated_at)}h</p>
+                  )}
+                </div>
               </div>
-              <p className="text-text-muted text-xs mb-4">Competitions in your field and country — with difficulty spread so you can start now.</p>
+              <p className="text-text-muted text-xs mb-4">
+                Competitions in your field and country — with difficulty spread so you can start now.
+                {aiCompetitions?.generated_at && (
+                  <span className="ml-1 text-text-muted/50">Generated {timeAgo(aiCompetitions.generated_at)}.</span>
+                )}
+              </p>
               {aiCompetitionsLoading && (
                 <div className="grid md:grid-cols-2 gap-3">
                   <div className="h-28 bg-white/5 rounded-xl shimmer" />
@@ -726,4 +756,20 @@ function CompetitionCard({
       )}
     </motion.div>
   );
+}
+
+// Hours remaining in 24h cooldown. Returns 0 if no cooldown active.
+function cooldownHours(generatedAt: string | undefined): number {
+  if (!generatedAt) return 0;
+  const hoursLeft = 24 - (Date.now() - new Date(generatedAt).getTime()) / 3_600_000;
+  return hoursLeft > 0 ? Math.ceil(hoursLeft) : 0;
+}
+
+// Human-readable "X hours ago" / "X days ago"
+function timeAgo(iso: string): string {
+  const hours = (Date.now() - new Date(iso).getTime()) / 3_600_000;
+  if (hours < 1) return "just now";
+  if (hours < 24) return `${Math.floor(hours)}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
 }
