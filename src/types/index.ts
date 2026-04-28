@@ -137,6 +137,7 @@ export interface CollegeCard {
   fit_reason: string;
   url?: string;
   profile_strength_needed?: number; // estimated universal profile score to be competitive
+  fit_score?: number;               // 0–100 personalised match score (academic fit + admission alignment + goal/environment match)
 }
 
 export interface DailyTip {
