@@ -10,7 +10,7 @@ import { competitions as allCompetitions } from "@/lib/competitions";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import { CardSkeleton } from "@/components/ui/Skeleton";
-import { GraduationCap, Trophy, Award, Search, Bookmark, BookmarkCheck, MapPin, BarChart3, TrendingUp, Sparkles, RotateCw, ExternalLink } from "lucide-react";
+import { GraduationCap, Trophy, Award, Search, Bookmark, BookmarkCheck, MapPin, BarChart3, TrendingUp, Sparkles, RotateCw, ExternalLink, Info } from "lucide-react";
 import ProgressBar from "@/components/ui/ProgressBar";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -203,24 +203,12 @@ export default function OpportunitiesPage() {
                   <div className="grid md:grid-cols-2 gap-4">
                     {collegeList[tier]?.map((college, i) => (
                       <motion.div key={college.name} initial="hidden" animate="visible" variants={fadeUp} custom={i} className="glass-card p-5">
-                        <div className="flex items-start justify-between mb-2 gap-2">
-                          <div className="flex items-start gap-2 flex-1 min-w-0">
-                            <h4 className="font-heading font-semibold text-text-primary leading-tight">{college.name}</h4>
-                            {college.fit_score != null && (
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-badge text-xs font-bold flex-shrink-0 mt-0.5 ${
-                                college.fit_score >= 80
-                                  ? "bg-pop/15 text-pop border border-pop/25"
-                                  : college.fit_score >= 60
-                                  ? "bg-amber-400/15 text-amber-400 border border-amber-400/25"
-                                  : "bg-red-400/15 text-red-400 border border-red-400/25"
-                              }`}>
-                                Fit {college.fit_score}
-                              </span>
-                            )}
-                          </div>
+                        {/* Header */}
+                        <div className="flex items-start justify-between mb-1 gap-2">
+                          <h4 className="font-heading font-semibold text-text-primary leading-tight">{college.name}</h4>
                           <button
                             onClick={() => saveItem("college", college.name, college as unknown as Record<string, unknown>)}
-                            className={`transition-colors flex-shrink-0 ${savedIds.has(college.name) ? "text-purple cursor-default" : "text-text-muted hover:text-purple"}`}
+                            className={`transition-colors flex-shrink-0 mt-0.5 ${savedIds.has(college.name) ? "text-purple cursor-default" : "text-text-muted hover:text-purple"}`}
                             title={savedIds.has(college.name) ? "Saved" : "Save"}
                           >
                             {savedIds.has(college.name)
@@ -228,40 +216,102 @@ export default function OpportunitiesPage() {
                               : <Bookmark className="w-4 h-4" />}
                           </button>
                         </div>
-                        <div className="flex items-center gap-2 text-text-muted text-xs mb-2">
+                        <div className="flex items-center gap-2 text-text-muted text-xs mb-3">
                           <MapPin className="w-3 h-3" /> {college.location}
                         </div>
-                        <div className="flex gap-2 flex-wrap mb-3">
+                        <div className="flex gap-2 flex-wrap mb-4">
                           <Badge variant="muted">GPA: {college.avg_gpa}</Badge>
                           <Badge variant="muted">SAT: {college.avg_sat}</Badge>
                           <Badge variant="muted"><BarChart3 className="w-3 h-3 mr-1" /> {college.acceptance_rate}</Badge>
                         </div>
 
-                        {/* Profile strength needed + likelihood */}
-                        {college.profile_strength_needed != null && (
-                          <div className="flex items-center gap-3 mb-3 bg-white/5 rounded-button px-3 py-2">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-text-muted text-xs">Score needed</p>
-                              <p className="font-heading font-bold text-sm text-text-primary">{college.profile_strength_needed}</p>
-                            </div>
-                            {profile.profile_strength_updated_at && (
-                              <div className="text-right flex-shrink-0">
-                                <p className="text-text-muted text-xs">Your likelihood</p>
-                                <p className={`font-heading font-bold text-sm ${
-                                  getLikelihood(profile.profile_strength, college.profile_strength_needed) >= 60
-                                    ? "text-pop"
-                                    : getLikelihood(profile.profile_strength, college.profile_strength_needed) >= 35
-                                    ? "text-amber-400"
-                                    : "text-red-400"
-                                }`}>
-                                  {getLikelihood(profile.profile_strength, college.profile_strength_needed)}%
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                        {/* Scores panel */}
+                        {(college.fit_score != null || college.profile_strength_needed != null) && (() => {
+                          const hasMeasured = !!profile.profile_strength_updated_at;
+                          const odds = (college.profile_strength_needed != null && hasMeasured)
+                            ? getCombinedOdds(profile.profile_strength, college.profile_strength_needed, college.fit_score ?? 60)
+                            : null;
+                          const fitScore = college.fit_score;
+                          const needed = college.profile_strength_needed;
 
-                        <p className="text-text-muted text-xs mb-3">{college.fit_reason}</p>
+                          const fitColor = fitScore == null ? "" : fitScore >= 80 ? "text-pop" : fitScore >= 60 ? "text-amber-400" : "text-red-400";
+                          const oddsColor = odds == null ? "" : odds >= 60 ? "text-pop" : odds >= 35 ? "text-amber-400" : "text-red-400";
+
+                          const colCount = [fitScore, odds ?? (needed != null ? "ph" : null), needed].filter(Boolean).length || 1;
+
+                          return (
+                            <div className="relative mb-4 group/scores">
+                              <div className={`bg-white/5 rounded-xl p-3 grid gap-0 divide-x divide-white/10`}
+                                style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}>
+                                {fitScore != null && (
+                                  <div className="text-center px-2">
+                                    <p className="text-text-muted text-[10px] uppercase tracking-wide mb-1">Fit</p>
+                                    <p className={`font-heading font-bold text-xl ${fitColor}`}>{fitScore}</p>
+                                    <p className="text-text-muted text-[10px]">/ 100</p>
+                                  </div>
+                                )}
+                                {needed != null && (
+                                  <div className="text-center px-2">
+                                    {hasMeasured && odds != null ? (
+                                      <>
+                                        <p className="text-text-muted text-[10px] uppercase tracking-wide mb-1">Odds</p>
+                                        <p className={`font-heading font-bold text-xl ${oddsColor}`}>{odds}%</p>
+                                        <p className="text-text-muted text-[10px]">admission</p>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <p className="text-text-muted text-[10px] uppercase tracking-wide mb-1">Odds</p>
+                                        <p className="font-heading font-bold text-xl text-text-muted/40">—</p>
+                                        <p className="text-text-muted text-[10px]">needs score</p>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                                {needed != null && (
+                                  <div className="text-center px-2">
+                                    <p className="text-text-muted text-[10px] uppercase tracking-wide mb-1">Required</p>
+                                    <p className="font-heading font-bold text-xl text-text-primary">{needed}</p>
+                                    <p className="text-text-muted text-[10px]">score</p>
+                                  </div>
+                                )}
+                                {/* Info icon */}
+                                <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-surface border border-white/10 flex items-center justify-center cursor-default">
+                                  <Info className="w-2.5 h-2.5 text-text-muted" />
+                                </div>
+                              </div>
+                              {/* Tooltip */}
+                              <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-white/10 rounded-xl p-3 shadow-2xl opacity-0 invisible group-hover/scores:opacity-100 group-hover/scores:visible transition-all z-50 pointer-events-none">
+                                <ul className="space-y-2 text-xs">
+                                  {fitScore != null && (
+                                    <li className="flex gap-2">
+                                      <span className={`font-bold shrink-0 ${fitColor}`}>Fit {fitScore}</span>
+                                      <span className="text-text-muted">How well this college matches your major, goals, and environment preferences (0 = poor match, 100 = ideal match).</span>
+                                    </li>
+                                  )}
+                                  {needed != null && (
+                                    <li className="flex gap-2">
+                                      <span className="font-bold text-text-primary shrink-0">Odds {odds != null ? `${odds}%` : "—"}</span>
+                                      <span className="text-text-muted">Estimated admission probability combining your profile strength and fit score. {!hasMeasured && "Calculate your profile strength first."}</span>
+                                    </li>
+                                  )}
+                                  {needed != null && (
+                                    <li className="flex gap-2">
+                                      <span className="font-bold text-text-primary shrink-0">Required {needed}</span>
+                                      <span className="text-text-muted">Minimum profile score competitive applicants typically have. Your score: {hasMeasured ? profile.profile_strength : "not measured yet"}.</span>
+                                    </li>
+                                  )}
+                                </ul>
+                                {!hasMeasured && (
+                                  <p className="mt-2 text-[10px] text-purple border-t border-white/10 pt-2">
+                                    → Head to <strong>Progress</strong> and hit Recalculate to unlock Odds.
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        <p className="text-text-muted text-xs mb-3 italic">&ldquo;{college.fit_reason}&rdquo;</p>
                         {college.url && (
                           <a
                             href={college.url}
@@ -399,13 +449,20 @@ export default function OpportunitiesPage() {
   );
 }
 
-// Estimate % likelihood of admission based on how far the student's score is from the needed score.
-// Sigmoid-like curve: at par = ~55%, +10 above = ~80%, -10 below = ~25%, -20 = ~8%.
-function getLikelihood(studentScore: number, neededScore: number): number {
+// Profile-only admission likelihood (sigmoid curve).
+// At par = ~55%, +10 = ~80%, -10 = ~25%, -20 = ~8%.
+function getProfileLikelihood(studentScore: number, neededScore: number): number {
   const delta = studentScore - neededScore;
-  // Logistic: L / (1 + e^(-k*(x-x0)))
   const raw = 100 / (1 + Math.exp(-0.18 * (delta + 3)));
   return Math.max(1, Math.min(99, Math.round(raw)));
+}
+
+// Combined odds: 70% profile-based likelihood + 30% fit score.
+// A high fit (90) adds up to ~9 pts; a low fit (30) subtracts up to ~9 pts.
+function getCombinedOdds(studentScore: number, neededScore: number, fitScore: number): number {
+  const profileOdds = getProfileLikelihood(studentScore, neededScore);
+  const combined = profileOdds * 0.70 + fitScore * 0.30;
+  return Math.max(1, Math.min(99, Math.round(combined)));
 }
 
 function StrengthForCollegeList({
