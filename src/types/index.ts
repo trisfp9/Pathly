@@ -70,14 +70,15 @@ export interface CompletedActivity {
 }
 
 export interface ProfileStrengthBreakdown {
-  overall: number; // 0-100
+  overall: number; // 0-100  universal US admissions score
   academics: number;
   activities: number;
   achievements: number;
   essays: number;
   explanation: string;
   suggestions: string[];
-  target_college: string;
+  target_college: string; // kept for legacy; not displayed
+  dream_college_target?: number; // estimated profile score needed for dream school
 }
 
 export interface ExtracurricularRecommendation {
@@ -135,6 +136,7 @@ export interface CollegeCard {
   acceptance_rate: string;
   fit_reason: string;
   url?: string;
+  profile_strength_needed?: number; // estimated universal profile score to be competitive
 }
 
 export interface DailyTip {

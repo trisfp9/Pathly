@@ -38,6 +38,8 @@ export default function ProgressPage() {
   const [awards, setAwards] = useState<AwardType[]>([]);
   const [newAward, setNewAward] = useState<AwardType>({ name: "", level: "School", year: "", description: "" });
 
+  const [strengthInfoOpen, setStrengthInfoOpen] = useState(false);
+
   // Common App writer state
   const [polishResults, setPolishResults] = useState<Record<number, PolishResult>>({});
   const [polishing, setPolishing] = useState<number | null>(null);
@@ -221,18 +223,37 @@ export default function ProgressPage() {
               className="glass-card p-6 border-purple/20 relative overflow-hidden"
             >
               <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-accent via-purple to-energy" />
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <TrendingUp className="w-5 h-5 text-purple" />
                   <h2 className="font-heading font-semibold text-text-primary">Profile Strength</h2>
-                  {breakdown?.target_college && (
-                    <Badge variant="muted">vs. {breakdown.target_college}</Badge>
-                  )}
+                  <button
+                    onClick={() => setStrengthInfoOpen((v) => !v)}
+                    className="text-text-muted/50 hover:text-purple transition-colors"
+                    aria-label="How is this calculated?"
+                  >
+                    <Info className="w-3.5 h-3.5" />
+                  </button>
                 </div>
                 <Button variant="purple" size="sm" onClick={recalculateStrength} loading={recalculating}>
                   <Sparkles className="w-4 h-4" /> {recalculating ? "Scoring..." : "Recalculate"}
                 </Button>
               </div>
+
+              {/* Info dropdown */}
+              {strengthInfoOpen && (
+                <div className="mb-4 bg-white/5 rounded-button p-4 text-xs text-text-muted space-y-2 border border-white/10">
+                  <p className="text-text-primary font-medium">What is the Profile Strength score?</p>
+                  <p>A <strong className="text-text-primary">universal US college admissions score (0–100)</strong> — not tied to any specific school. Same rubric every time:</p>
+                  <ul className="space-y-1 list-disc list-inside pl-1">
+                    <li><span className="text-text-primary">Academics</span> (35%) — GPA + standardised test scores</li>
+                    <li><span className="text-text-primary">Activities</span> (35%) — quantity, leadership, depth, thematic coherence</li>
+                    <li><span className="text-text-primary">Achievements</span> (20%) — prestige-weighted (International › National › State › Regional › School)</li>
+                    <li><span className="text-text-primary">Essays</span> (10%) — based on your AI essay review score (Pro)</li>
+                  </ul>
+                  <p className="pt-1 border-t border-white/10">Benchmarks: <span className="text-pop font-medium">96–100</span> MIT/Harvard · <span className="text-accent font-medium">88–95</span> Top 20 · <span className="text-purple font-medium">78–88</span> Top 50 · below 78 needs work</p>
+                </div>
+              )}
 
               <div className="mb-4">
                 <div className="flex items-baseline gap-2 mb-2">
@@ -281,7 +302,7 @@ export default function ProgressPage() {
                 </div>
               ) : (
                 <p className="text-text-muted text-sm">
-                  Click Recalculate to get an AI-powered, honest assessment of where you stand for admission to your target school.
+                  Click Recalculate to get your universal profile strength score — a consistent measure of your competitiveness across all US universities.
                 </p>
               )}
             </motion.div>

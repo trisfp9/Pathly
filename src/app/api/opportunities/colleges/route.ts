@@ -38,18 +38,28 @@ Return ONLY valid JSON (no markdown, no backticks) with this exact shape:
   "safety": [3-4 colleges]
 }
 
-Each college should have:
+Each college object must have ALL of these fields:
 {
   "name": "University Name",
   "location": "City, State/Country",
-  "avg_gpa": "X.X",
+  "avg_gpa": "X.XX",
   "avg_sat": "XXXX",
   "acceptance_rate": "XX%",
   "fit_reason": "One sentence about why this school fits the student.",
-  "url": "https://www.university.edu"
+  "url": "https://www.university.edu",
+  "profile_strength_needed": <integer 0-100>
 }
 
-Include the official university website URL. Only use real, verifiable URLs — if unsure of the exact URL, use the main domain (e.g. https://www.mit.edu).
+"profile_strength_needed" is the estimated minimum universal profile strength score a competitive applicant to that school typically needs, using this scale:
+  MIT, Harvard, Yale, Princeton, Stanford → 96–100
+  Columbia, UChicago, Caltech, Duke, Penn → 93–97
+  Dartmouth, Northwestern, Brown, Rice, Vanderbilt, Notre Dame → 88–94
+  UCLA, Michigan, Georgetown, Emory, Tufts → 80–90
+  Boston University, Fordham, Tulane, Pepperdine → 72–82
+  Large state flagships (Ohio State, Indiana, Arizona State) → 60–75
+  Community colleges / open-admission → 30–55
+
+Only use real, verifiable college website URLs.
 
 Consider the student's GPA, test scores, major interest, dream college, aiming level, and target country. Use real, current data. If unsure about stats, give reasonable estimates.`;
 

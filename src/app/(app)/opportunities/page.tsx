@@ -223,6 +223,31 @@ export default function OpportunitiesPage() {
                           <Badge variant="muted">SAT: {college.avg_sat}</Badge>
                           <Badge variant="muted"><BarChart3 className="w-3 h-3 mr-1" /> {college.acceptance_rate}</Badge>
                         </div>
+
+                        {/* Profile strength needed + likelihood */}
+                        {college.profile_strength_needed != null && (
+                          <div className="flex items-center gap-3 mb-3 bg-white/5 rounded-button px-3 py-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-text-muted text-xs">Score needed</p>
+                              <p className="font-heading font-bold text-sm text-text-primary">{college.profile_strength_needed}</p>
+                            </div>
+                            {profile.profile_strength_updated_at && (
+                              <div className="text-right flex-shrink-0">
+                                <p className="text-text-muted text-xs">Your likelihood</p>
+                                <p className={`font-heading font-bold text-sm ${
+                                  getLikelihood(profile.profile_strength, college.profile_strength_needed) >= 60
+                                    ? "text-pop"
+                                    : getLikelihood(profile.profile_strength, college.profile_strength_needed) >= 35
+                                    ? "text-amber-400"
+                                    : "text-red-400"
+                                }`}>
+                                  {getLikelihood(profile.profile_strength, college.profile_strength_needed)}%
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <p className="text-text-muted text-xs mb-3">{college.fit_reason}</p>
                         {college.url && (
                           <a
@@ -359,6 +384,15 @@ export default function OpportunitiesPage() {
       )}
     </div>
   );
+}
+
+// Estimate % likelihood of admission based on how far the student's score is from the needed score.
+// Sigmoid-like curve: at par = ~55%, +10 above = ~80%, -10 below = ~25%, -20 = ~8%.
+function getLikelihood(studentScore: number, neededScore: number): number {
+  const delta = studentScore - neededScore;
+  // Logistic: L / (1 + e^(-k*(x-x0)))
+  const raw = 100 / (1 + Math.exp(-0.18 * (delta + 3)));
+  return Math.max(1, Math.min(99, Math.round(raw)));
 }
 
 function StrengthForCollegeList({

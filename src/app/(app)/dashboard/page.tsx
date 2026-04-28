@@ -111,6 +111,7 @@ export default function DashboardPage() {
   const xpInfo = getXPLevel(profile.xp);
   const messagesUsed = profile.is_pro ? profile.ai_messages_this_month : profile.ai_messages_used;
   const messagesMax = profile.is_pro ? 500 : 7;
+  const breakdown = profile.profile_strength_breakdown as { dream_college_target?: number } | null;
 
   return (
     <div className="space-y-8">
@@ -201,10 +202,16 @@ export default function DashboardPage() {
           <div className="w-12 h-12 rounded-2xl bg-pop/10 flex items-center justify-center flex-shrink-0">
             <Target className="w-6 h-6 text-pop" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-text-muted text-sm">Dream School</p>
             <p className="font-heading font-semibold text-lg text-text-primary">{profile.dream_college}</p>
           </div>
+          {breakdown?.dream_college_target != null && (
+            <div className="text-right flex-shrink-0">
+              <p className="text-text-muted text-xs">Target score</p>
+              <p className="font-heading font-bold text-xl text-pop">{breakdown.dream_college_target}</p>
+            </div>
+          )}
         </motion.div>
       )}
 
