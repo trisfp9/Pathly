@@ -25,6 +25,8 @@ export interface Profile {
   selected_extracurricular_categories: string[] | null;
   college_list_cache: CollegeList | null;
   daily_tip_cache: DailyTip | null;
+  ai_scholarships_cache: AIScholarshipsCache | null;
+  ai_competitions_cache: AICompetitionsCache | null;
   detailed_profile: DetailedProfile | null;
   current_activities: CurrentActivity[] | null;
   completed_activities: CompletedActivity[] | null;
@@ -185,6 +187,8 @@ export interface Scholarship {
   description: string;
   tags: string[];
   url: string;
+  country?: string;      // e.g. "US", "International", "Indonesia"
+  eligibility?: string;  // any specific eligibility notes
 }
 
 export interface Competition {
@@ -195,6 +199,18 @@ export interface Competition {
   description: string;
   deadline?: string;
   url: string;
+  country?: string;   // e.g. "US", "International"
+  tags?: string[];
+}
+
+export interface AIScholarshipsCache {
+  scholarships: Scholarship[];
+  generated_at: string;
+}
+
+export interface AICompetitionsCache {
+  competitions: Competition[];
+  generated_at: string;
 }
 
 // Grade-agnostic progression levels — tied to engagement/accomplishments, not grade

@@ -4,13 +4,11 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/auth-context";
 import { useDebounceValue } from "@/hooks/useDebounce";
-import { CollegeCard } from "@/types";
-import { scholarships as allScholarships } from "@/lib/scholarships";
-import { competitions as allCompetitions } from "@/lib/competitions";
+import { CollegeCard, Scholarship, Competition } from "@/types";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import { CardSkeleton } from "@/components/ui/Skeleton";
-import { GraduationCap, Trophy, Award, Search, Bookmark, BookmarkCheck, MapPin, BarChart3, TrendingUp, Sparkles, RotateCw, ExternalLink, Info } from "lucide-react";
+import { GraduationCap, Trophy, Award, Search, Bookmark, BookmarkCheck, MapPin, BarChart3, TrendingUp, Sparkles, RotateCw, ExternalLink, Info, Crown } from "lucide-react";
 import ProgressBar from "@/components/ui/ProgressBar";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -36,11 +34,45 @@ export default function OpportunitiesPage() {
   const [competitionFilter, setCompetitionFilter] = useState<string>("all");
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
+  // Supabase data
+  const [allScholarships, setAllScholarships] = useState<Scholarship[]>([]);
+  const [allCompetitions, setAllCompetitions] = useState<Competition[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  // AI generation
+  const [aiScholarshipsLoading, setAiScholarshipsLoading] = useState(false);
+  const [aiCompetitionsLoading, setAiCompetitionsLoading] = useState(false);
+  const [aiScholarships, setAiScholarships] = useState(profile?.ai_scholarships_cache ?? null);
+  const [aiCompetitions, setAiCompetitions] = useState(profile?.ai_competitions_cache ?? null);
+
   useEffect(() => {
     if (profile?.college_list_cache) {
       setCollegeList(profile.college_list_cache);
     }
+    if (profile?.ai_scholarships_cache) setAiScholarships(profile.ai_scholarships_cache);
+    if (profile?.ai_competitions_cache) setAiCompetitions(profile.ai_competitions_cache);
   }, [profile]);
+
+  // Load scholarships + competitions from Supabase
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const { createBrowserClient } = await import("@/lib/supabase");
+        const supabase = createBrowserClient();
+        const [{ data: s }, { data: c }] = await Promise.all([
+          supabase.from("scholarships").select("*").order("name"),
+          supabase.from("competitions").select("*").order("name"),
+        ]);
+        setAllScholarships((s as Scholarship[]) || []);
+        setAllCompetitions((c as Competition[]) || []);
+      } catch (err) {
+        console.error("Failed to load opportunities:", err);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   // Load saved item IDs so we can show filled bookmark icons
   useEffect(() => {
@@ -110,9 +142,49 @@ export default function OpportunitiesPage() {
     }
   };
 
+  const generateAiScholarships = async () => {
+    if (!session?.access_token) return;
+    setAiScholarshipsLoading(true);
+    try {
+      const res = await fetch("/api/opportunities/scholarships", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.status === 429) { toast.error("Too many requests — wait a moment."); return; }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || "Generation failed"); }
+      const data = await res.json();
+      setAiScholarships(data);
+      toast.success("AI scholarship picks ready!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to generate. Please try again.");
+    } finally {
+      setAiScholarshipsLoading(false);
+    }
+  };
+
+  const generateAiCompetitions = async () => {
+    if (!session?.access_token) return;
+    setAiCompetitionsLoading(true);
+    try {
+      const res = await fetch("/api/opportunities/competitions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.status === 429) { toast.error("Too many requests — wait a moment."); return; }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || "Generation failed"); }
+      const data = await res.json();
+      setAiCompetitions(data);
+      toast.success("AI competition picks ready!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to generate. Please try again.");
+    } finally {
+      setAiCompetitionsLoading(false);
+    }
+  };
+
   const filteredScholarships = allScholarships.filter((s) => {
     const matchSearch = !debouncedSearch || s.name.toLowerCase().includes(debouncedSearch.toLowerCase());
-    const matchFilter = scholarshipFilter === "all" || s.tags.includes(scholarshipFilter);
+    const matchFilter = scholarshipFilter === "all" || (s.tags || []).includes(scholarshipFilter);
     return matchSearch && matchFilter;
   });
 
@@ -321,113 +393,160 @@ export default function OpportunitiesPage() {
 
       {/* Scholarships Tab */}
       {tab === "scholarships" && (
-        <div className="space-y-4">
-          <div className="flex gap-2 flex-wrap">
-            {scholarshipTags.map((tag) => (
-              <button
-                key={tag}
-                onClick={() => setScholarshipFilter(tag)}
-                className={`px-3 py-1.5 rounded-badge text-xs font-medium transition-all border ${
-                  scholarshipFilter === tag
-                    ? "bg-purple/15 text-purple border-purple/30"
-                    : "bg-white/5 text-text-muted border-white/10 hover:border-white/20"
-                }`}
-              >
-                {tag === "all" ? "All" : tag}
-              </button>
-            ))}
-          </div>
+        <div className="space-y-6">
+          {/* Pro AI Picks */}
+          {profile.is_pro ? (
+            <div className="glass-card p-5 border-purple/20 relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-accent via-purple to-energy" />
+              <div className="flex items-center justify-between gap-4 flex-wrap mb-1">
+                <div className="flex items-center gap-2">
+                  <Crown className="w-4 h-4 text-purple" />
+                  <p className="font-heading font-semibold text-text-primary">AI Picks for You</p>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-purple bg-purple/10 px-2 py-0.5 rounded-full">Pro</span>
+                </div>
+                <Button variant="purple" size="sm" onClick={generateAiScholarships} loading={aiScholarshipsLoading}>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {aiScholarships ? "Regenerate" : "Generate My Picks"}
+                </Button>
+              </div>
+              <p className="text-text-muted text-xs mb-4">Scholarships matched to your major, country, and profile — not a generic list.</p>
+              {aiScholarshipsLoading && (
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div className="h-28 bg-white/5 rounded-xl shimmer" />
+                  <div className="h-28 bg-white/5 rounded-xl shimmer" />
+                </div>
+              )}
+              {!aiScholarshipsLoading && aiScholarships && (
+                <div className="grid md:grid-cols-2 gap-3">
+                  {aiScholarships.scholarships.map((s, i) => (
+                    <ScholarshipCard key={s.id} scholarship={s} savedIds={savedIds} onSave={saveItem} index={i} />
+                  ))}
+                </div>
+              )}
+              {!aiScholarshipsLoading && !aiScholarships && (
+                <p className="text-text-muted/60 text-xs italic">Click &ldquo;Generate My Picks&rdquo; to get AI-curated scholarships based on your profile.</p>
+              )}
+            </div>
+          ) : (
+            <div className="glass-card p-5 flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <p className="font-heading font-semibold text-text-primary text-sm">Get AI-matched scholarships ✦</p>
+                <p className="text-text-muted text-xs mt-0.5">Pro users get a personalised list matched to their major, country, and profile.</p>
+              </div>
+              <Link href="/pricing"><Button variant="pop" size="sm">Upgrade to Pro</Button></Link>
+            </div>
+          )}
 
-          <div className="grid md:grid-cols-2 gap-4">
-            {filteredScholarships.map((s, i) => (
-              <motion.div key={s.id} initial="hidden" animate="visible" variants={fadeUp} custom={i} className="glass-card p-5">
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-heading font-semibold text-text-primary text-sm">{s.name}</h4>
-                  <button
-                    onClick={() => saveItem("scholarship", s.id, s as unknown as Record<string, unknown>)}
-                    className={`transition-colors flex-shrink-0 ${savedIds.has(s.id) ? "text-purple cursor-default" : "text-text-muted hover:text-purple"}`}
-                    title={savedIds.has(s.id) ? "Saved" : "Save"}
-                  >
-                    {savedIds.has(s.id) ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
-                  </button>
-                </div>
-                <p className="text-purple font-heading font-bold text-lg mb-1">{s.amount}</p>
-                <p className="text-text-muted text-xs mb-3">{s.description}</p>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex gap-1 flex-wrap">
-                    {s.tags.map((tag) => (
-                      <Badge key={tag} variant="muted">{tag}</Badge>
-                    ))}
-                  </div>
-                  <span className="text-text-muted text-xs">Due: {s.deadline}</span>
-                </div>
-                {s.url && s.url !== "#" && (
-                  <a
-                    href={s.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-purple hover:text-purple-light text-xs font-medium transition-colors"
-                  >
-                    Visit official site <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-              </motion.div>
-            ))}
+          {/* Browse all */}
+          <div>
+            <p className="text-text-muted text-xs font-medium uppercase tracking-wide mb-3">Browse All Scholarships</p>
+            <div className="flex gap-2 flex-wrap mb-4">
+              {["all", "need-based", "merit", "STEM", "arts", "first-gen", "international"].map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => setScholarshipFilter(tag)}
+                  className={`px-3 py-1.5 rounded-badge text-xs font-medium transition-all border ${
+                    scholarshipFilter === tag
+                      ? "bg-purple/15 text-purple border-purple/30"
+                      : "bg-white/5 text-text-muted border-white/10 hover:border-white/20"
+                  }`}
+                >
+                  {tag === "all" ? "All" : tag}
+                </button>
+              ))}
+            </div>
+            {dataLoading ? (
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="h-32 bg-white/5 rounded-xl shimmer" />
+                <div className="h-32 bg-white/5 rounded-xl shimmer" />
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-4">
+                {filteredScholarships.map((s, i) => (
+                  <ScholarshipCard key={s.id} scholarship={s} savedIds={savedIds} onSave={saveItem} index={i} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* Competitions Tab */}
       {tab === "competitions" && (
-        <div className="space-y-4">
-          <div className="flex gap-2 flex-wrap">
-            {competitionFields.map((f) => (
-              <button
-                key={f}
-                onClick={() => setCompetitionFilter(f)}
-                className={`px-3 py-1.5 rounded-badge text-xs font-medium transition-all border ${
-                  competitionFilter === f
-                    ? "bg-purple/15 text-purple border-purple/30"
-                    : "bg-white/5 text-text-muted border-white/10 hover:border-white/20"
-                }`}
-              >
-                {f === "all" ? "All" : f}
-              </button>
-            ))}
-          </div>
+        <div className="space-y-6">
+          {/* Pro AI Picks */}
+          {profile.is_pro ? (
+            <div className="glass-card p-5 border-purple/20 relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-accent via-purple to-energy" />
+              <div className="flex items-center justify-between gap-4 flex-wrap mb-1">
+                <div className="flex items-center gap-2">
+                  <Crown className="w-4 h-4 text-purple" />
+                  <p className="font-heading font-semibold text-text-primary">AI Picks for You</p>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-purple bg-purple/10 px-2 py-0.5 rounded-full">Pro</span>
+                </div>
+                <Button variant="purple" size="sm" onClick={generateAiCompetitions} loading={aiCompetitionsLoading}>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {aiCompetitions ? "Regenerate" : "Generate My Picks"}
+                </Button>
+              </div>
+              <p className="text-text-muted text-xs mb-4">Competitions in your field and country — with difficulty spread so you can start now.</p>
+              {aiCompetitionsLoading && (
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div className="h-28 bg-white/5 rounded-xl shimmer" />
+                  <div className="h-28 bg-white/5 rounded-xl shimmer" />
+                </div>
+              )}
+              {!aiCompetitionsLoading && aiCompetitions && (
+                <div className="grid md:grid-cols-2 gap-3">
+                  {aiCompetitions.competitions.map((c, i) => (
+                    <CompetitionCard key={c.id} competition={c} savedIds={savedIds} onSave={saveItem} index={i} />
+                  ))}
+                </div>
+              )}
+              {!aiCompetitionsLoading && !aiCompetitions && (
+                <p className="text-text-muted/60 text-xs italic">Click &ldquo;Generate My Picks&rdquo; to get AI-curated competitions based on your profile.</p>
+              )}
+            </div>
+          ) : (
+            <div className="glass-card p-5 flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <p className="font-heading font-semibold text-text-primary text-sm">Get AI-matched competitions ✦</p>
+                <p className="text-text-muted text-xs mt-0.5">Pro users get a personalised list matched to their field, country, and grade.</p>
+              </div>
+              <Link href="/pricing"><Button variant="pop" size="sm">Upgrade to Pro</Button></Link>
+            </div>
+          )}
 
-          <div className="grid md:grid-cols-2 gap-4">
-            {filteredCompetitions.map((c, i) => (
-              <motion.div key={c.id} initial="hidden" animate="visible" variants={fadeUp} custom={i} className="glass-card p-5">
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-heading font-semibold text-text-primary text-sm">{c.name}</h4>
-                  <button
-                    onClick={() => saveItem("competition", c.id, c as unknown as Record<string, unknown>)}
-                    className={`transition-colors flex-shrink-0 ${savedIds.has(c.id) ? "text-purple cursor-default" : "text-text-muted hover:text-purple"}`}
-                    title={savedIds.has(c.id) ? "Saved" : "Save"}
-                  >
-                    {savedIds.has(c.id) ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
-                  </button>
-                </div>
-                <p className="text-text-muted text-xs mb-3">{c.description}</p>
-                <div className="flex gap-2 mb-3">
-                  <Badge variant="accent">{c.field}</Badge>
-                  <Badge variant={c.difficulty === "Advanced" ? "warning" : c.difficulty === "Intermediate" ? "accent" : "muted"}>
-                    {c.difficulty}
-                  </Badge>
-                </div>
-                {c.url && c.url !== "#" && (
-                  <a
-                    href={c.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-purple hover:text-purple-light text-xs font-medium transition-colors"
-                  >
-                    Visit official site <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-              </motion.div>
-            ))}
+          {/* Browse all */}
+          <div>
+            <p className="text-text-muted text-xs font-medium uppercase tracking-wide mb-3">Browse All Competitions</p>
+            <div className="flex gap-2 flex-wrap mb-4">
+              {["all", ...Array.from(new Set(allCompetitions.map((c) => c.field)))].map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setCompetitionFilter(f)}
+                  className={`px-3 py-1.5 rounded-badge text-xs font-medium transition-all border ${
+                    competitionFilter === f
+                      ? "bg-purple/15 text-purple border-purple/30"
+                      : "bg-white/5 text-text-muted border-white/10 hover:border-white/20"
+                  }`}
+                >
+                  {f === "all" ? "All" : f}
+                </button>
+              ))}
+            </div>
+            {dataLoading ? (
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="h-32 bg-white/5 rounded-xl shimmer" />
+                <div className="h-32 bg-white/5 rounded-xl shimmer" />
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-4">
+                {filteredCompetitions.map((c, i) => (
+                  <CompetitionCard key={c.id} competition={c} savedIds={savedIds} onSave={saveItem} index={i} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -519,5 +638,92 @@ function StrengthForCollegeList({
         </p>
       )}
     </div>
+  );
+}
+
+function ScholarshipCard({
+  scholarship: s,
+  savedIds,
+  onSave,
+  index,
+}: {
+  scholarship: Scholarship;
+  savedIds: Set<string>;
+  onSave: (type: string, id: string, data: Record<string, unknown>) => void;
+  index: number;
+}) {
+  return (
+    <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={index} className="glass-card p-5">
+      <div className="flex items-start justify-between mb-2">
+        <h4 className="font-heading font-semibold text-text-primary text-sm leading-tight">{s.name}</h4>
+        <button
+          onClick={() => onSave("scholarship", s.id, s as unknown as Record<string, unknown>)}
+          className={`transition-colors flex-shrink-0 ml-2 ${savedIds.has(s.id) ? "text-purple cursor-default" : "text-text-muted hover:text-purple"}`}
+          title={savedIds.has(s.id) ? "Saved" : "Save"}
+        >
+          {savedIds.has(s.id) ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+        </button>
+      </div>
+      <p className="text-purple font-heading font-bold text-lg mb-1">{s.amount}</p>
+      <p className="text-text-muted text-xs mb-3">{s.description}</p>
+      <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+        <div className="flex gap-1 flex-wrap">
+          {(s.tags || []).map((tag) => <Badge key={tag} variant="muted">{tag}</Badge>)}
+          {s.country && s.country !== "US" && <Badge variant="accent">{s.country}</Badge>}
+        </div>
+        <span className="text-text-muted text-xs shrink-0">Due: {s.deadline}</span>
+      </div>
+      {s.eligibility && <p className="text-text-muted/70 text-[11px] mb-2 italic">{s.eligibility}</p>}
+      {s.url && s.url !== "#" && (
+        <a href={s.url} target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-purple hover:text-purple-light text-xs font-medium transition-colors">
+          Visit official site <ExternalLink className="w-3 h-3" />
+        </a>
+      )}
+    </motion.div>
+  );
+}
+
+function CompetitionCard({
+  competition: c,
+  savedIds,
+  onSave,
+  index,
+}: {
+  competition: Competition;
+  savedIds: Set<string>;
+  onSave: (type: string, id: string, data: Record<string, unknown>) => void;
+  index: number;
+}) {
+  return (
+    <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={index} className="glass-card p-5">
+      <div className="flex items-start justify-between mb-2">
+        <h4 className="font-heading font-semibold text-text-primary text-sm leading-tight">{c.name}</h4>
+        <button
+          onClick={() => onSave("competition", c.id, c as unknown as Record<string, unknown>)}
+          className={`transition-colors flex-shrink-0 ml-2 ${savedIds.has(c.id) ? "text-purple cursor-default" : "text-text-muted hover:text-purple"}`}
+          title={savedIds.has(c.id) ? "Saved" : "Save"}
+        >
+          {savedIds.has(c.id) ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+        </button>
+      </div>
+      <p className="text-text-muted text-xs mb-3">{c.description}</p>
+      <div className="flex gap-2 mb-3 flex-wrap">
+        <Badge variant="accent">{c.field}</Badge>
+        <Badge variant={c.difficulty === "Advanced" ? "warning" : c.difficulty === "Intermediate" ? "accent" : "muted"}>
+          {c.difficulty}
+        </Badge>
+        {c.country && c.country !== "US" && c.country !== "International" && (
+          <Badge variant="muted">{c.country}</Badge>
+        )}
+        {c.deadline && <span className="text-text-muted text-xs self-center">Due: {c.deadline}</span>}
+      </div>
+      {c.url && c.url !== "#" && (
+        <a href={c.url} target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-purple hover:text-purple-light text-xs font-medium transition-colors">
+          Visit official site <ExternalLink className="w-3 h-3" />
+        </a>
+      )}
+    </motion.div>
   );
 }
