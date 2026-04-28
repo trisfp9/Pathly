@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase";
 import { checkRateLimit } from "@/lib/ratelimit";
-import { callClaude, buildProfilePrompt } from "@/lib/claude";
+import { callClaudeHaiku, buildProfilePrompt } from "@/lib/claude";
 
 export const maxDuration = 60;
 
@@ -79,7 +79,7 @@ What I did / achievements: ${activity.description || "not specified"}
 
 Write both a Common App description (≤150 chars) and UC description (≤350 chars).`;
 
-    const result = await callClaude(systemPrompt, userMessage);
+    const result = await callClaudeHaiku(systemPrompt, userMessage, 600);
 
     let parsed;
     try {

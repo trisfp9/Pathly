@@ -148,6 +148,34 @@ export async function streamCounselorResponse(
   }
 }
 
+// Cheap non-streaming call using Haiku — ~4x cheaper than Sonnet.
+// Use for simple/high-frequency tasks: daily tips, activity polish, short summaries.
+export async function callClaudeHaiku(
+  systemPrompt: string,
+  userMessage: string,
+  maxTokens = 600
+): Promise<string> {
+  const anthropic = getAnthropicClient();
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    const response = await anthropic.messages.create(
+      {
+        model: "claude-3-5-haiku-20241022",
+        max_tokens: maxTokens,
+        system: systemPrompt,
+        messages: [{ role: "user", content: sanitize(userMessage) }],
+      },
+      { signal: controller.signal }
+    );
+    clearTimeout(timeout);
+    const block = response.content[0];
+    return block.type === "text" ? block.text : "";
+  } catch (error) {
+    throw error;
+  }
+}
+
 // Non-streaming call with retries for analysis endpoints
 export async function callClaude(
   systemPrompt: string,

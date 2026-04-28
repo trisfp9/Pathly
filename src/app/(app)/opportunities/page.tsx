@@ -31,7 +31,9 @@ export default function OpportunitiesPage() {
   const [collegeList, setCollegeList] = useState<{ reach: CollegeCard[]; target: CollegeCard[]; safety: CollegeCard[] } | null>(null);
   const [collegeLoading, setCollegeLoading] = useState(false);
   const [scholarshipFilter, setScholarshipFilter] = useState<string>("all");
+  const [scholarshipRegion, setScholarshipRegion] = useState<string>("all");
   const [competitionFilter, setCompetitionFilter] = useState<string>("all");
+  const [competitionRegion, setCompetitionRegion] = useState<string>("all");
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
   // Supabase data
@@ -185,13 +187,21 @@ export default function OpportunitiesPage() {
   const filteredScholarships = allScholarships.filter((s) => {
     const matchSearch = !debouncedSearch || s.name.toLowerCase().includes(debouncedSearch.toLowerCase());
     const matchFilter = scholarshipFilter === "all" || (s.tags || []).includes(scholarshipFilter);
-    return matchSearch && matchFilter;
+    const matchRegion = scholarshipRegion === "all"
+      || (scholarshipRegion === "international" && s.country === "International")
+      || (scholarshipRegion === "us" && s.country === "US")
+      || (scholarshipRegion === "domestic" && s.country === (profile?.country || ""));
+    return matchSearch && matchFilter && matchRegion;
   });
 
   const filteredCompetitions = allCompetitions.filter((c) => {
     const matchSearch = !debouncedSearch || c.name.toLowerCase().includes(debouncedSearch.toLowerCase());
     const matchFilter = competitionFilter === "all" || c.field === competitionFilter;
-    return matchSearch && matchFilter;
+    const matchRegion = competitionRegion === "all"
+      || (competitionRegion === "international" && c.country === "International")
+      || (competitionRegion === "us" && c.country === "US")
+      || (competitionRegion === "domestic" && c.country === (profile?.country || ""));
+    return matchSearch && matchFilter && matchRegion;
   });
 
   const scholarshipTags = ["all", "need-based", "merit", "STEM", "arts", "first-gen", "international"];
@@ -294,6 +304,9 @@ export default function OpportunitiesPage() {
                         <div className="flex gap-2 flex-wrap mb-4">
                           <Badge variant="muted">GPA: {college.avg_gpa}</Badge>
                           <Badge variant="muted">SAT: {college.avg_sat}</Badge>
+                          {college.avg_act && college.avg_act !== "N/A" && (
+                            <Badge variant="muted">ACT: {college.avg_act}</Badge>
+                          )}
                           <Badge variant="muted"><BarChart3 className="w-3 h-3 mr-1" /> {college.acceptance_rate}</Badge>
                         </div>
 
@@ -455,18 +468,24 @@ export default function OpportunitiesPage() {
           {/* Browse all */}
           <div>
             <p className="text-text-muted text-xs font-medium uppercase tracking-wide mb-3">Browse All Scholarships</p>
-            <div className="flex gap-2 flex-wrap mb-4">
+            <div className="flex gap-2 flex-wrap mb-2">
               {["all", "need-based", "merit", "STEM", "arts", "first-gen", "international"].map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() => setScholarshipFilter(tag)}
-                  className={`px-3 py-1.5 rounded-badge text-xs font-medium transition-all border ${
-                    scholarshipFilter === tag
-                      ? "bg-purple/15 text-purple border-purple/30"
-                      : "bg-white/5 text-text-muted border-white/10 hover:border-white/20"
-                  }`}
-                >
+                <button key={tag} onClick={() => setScholarshipFilter(tag)}
+                  className={`px-3 py-1.5 rounded-badge text-xs font-medium transition-all border ${scholarshipFilter === tag ? "bg-purple/15 text-purple border-purple/30" : "bg-white/5 text-text-muted border-white/10 hover:border-white/20"}`}>
                   {tag === "all" ? "All" : tag}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2 flex-wrap mb-4">
+              {[
+                { id: "all", label: "All regions" },
+                { id: "international", label: "🌍 International" },
+                { id: "us", label: "🇺🇸 US" },
+                ...(profile?.country && profile.country !== "US" ? [{ id: "domestic", label: `🏠 ${profile.country}` }] : []),
+              ].map((r) => (
+                <button key={r.id} onClick={() => setScholarshipRegion(r.id)}
+                  className={`px-3 py-1.5 rounded-badge text-xs font-medium transition-all border ${scholarshipRegion === r.id ? "bg-accent/15 text-accent border-accent/30" : "bg-white/5 text-text-muted border-white/10 hover:border-white/20"}`}>
+                  {r.label}
                 </button>
               ))}
             </div>
@@ -550,18 +569,24 @@ export default function OpportunitiesPage() {
           {/* Browse all */}
           <div>
             <p className="text-text-muted text-xs font-medium uppercase tracking-wide mb-3">Browse All Competitions</p>
-            <div className="flex gap-2 flex-wrap mb-4">
+            <div className="flex gap-2 flex-wrap mb-2">
               {["all", ...Array.from(new Set(allCompetitions.map((c) => c.field)))].map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setCompetitionFilter(f)}
-                  className={`px-3 py-1.5 rounded-badge text-xs font-medium transition-all border ${
-                    competitionFilter === f
-                      ? "bg-purple/15 text-purple border-purple/30"
-                      : "bg-white/5 text-text-muted border-white/10 hover:border-white/20"
-                  }`}
-                >
+                <button key={f} onClick={() => setCompetitionFilter(f)}
+                  className={`px-3 py-1.5 rounded-badge text-xs font-medium transition-all border ${competitionFilter === f ? "bg-purple/15 text-purple border-purple/30" : "bg-white/5 text-text-muted border-white/10 hover:border-white/20"}`}>
                   {f === "all" ? "All" : f}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2 flex-wrap mb-4">
+              {[
+                { id: "all", label: "All regions" },
+                { id: "international", label: "🌍 International" },
+                { id: "us", label: "🇺🇸 US" },
+                ...(profile?.country && profile.country !== "US" ? [{ id: "domestic", label: `🏠 ${profile.country}` }] : []),
+              ].map((r) => (
+                <button key={r.id} onClick={() => setCompetitionRegion(r.id)}
+                  className={`px-3 py-1.5 rounded-badge text-xs font-medium transition-all border ${competitionRegion === r.id ? "bg-accent/15 text-accent border-accent/30" : "bg-white/5 text-text-muted border-white/10 hover:border-white/20"}`}>
+                  {r.label}
                 </button>
               ))}
             </div>

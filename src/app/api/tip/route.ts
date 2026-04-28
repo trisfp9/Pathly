@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase";
 import { checkRateLimit } from "@/lib/ratelimit";
-import { callClaude } from "@/lib/claude";
+import { callClaudeHaiku } from "@/lib/claude";
 
 export const maxDuration = 30;
 
@@ -30,9 +30,10 @@ export async function GET(request: Request) {
 
   // Generate new tip
   try {
-    const result = await callClaude(
+    const result = await callClaudeHaiku(
       "You are a college admissions tip generator. Give one short, actionable tip in 2-3 sentences. Be specific, encouraging, and complete — never end mid-thought. Keep it under 400 characters total.",
-      `Generate a tip for a ${profile.grade || "high school"} student interested in ${profile.major_interest || "college"}. Today's date: ${today}. Make it unique and seasonal if relevant.`
+      `Generate a tip for a ${profile.grade || "high school"} student interested in ${profile.major_interest || "college"}. Today's date: ${today}. Make it unique and seasonal if relevant.`,
+      300
     );
 
     // Don't truncate — let the full tip through. Claude will keep it short per the prompt.

@@ -55,6 +55,13 @@ CRITICAL — define reach / target / safety relative to THIS student's profile s
 Pick schools accordingly. A safety must have a profile_strength_needed that is genuinely below this student's score.
 If profile_strength is 0 or very low (student hasn't measured yet), use their GPA and test scores to estimate placement.
 
+STATS ACCURACY — use the most recent publicly available data (Class of 2028/2029 or the most recent admitted class):
+- avg_gpa: median reported GPA of enrolled/admitted students (e.g. "3.92")
+- avg_sat: midpoint of the middle-50% SAT range of enrolled students (e.g. "1510"). If school is test-optional and doesn't publish SAT data, write "Test-optional".
+- avg_act: midpoint of the middle-50% ACT range (e.g. "34"). If unavailable write "N/A".
+- acceptance_rate: most recently reported acceptance rate (e.g. "4%", "58%")
+Do NOT invent or estimate these numbers — only use figures you are confident are accurate from real published data.
+
 Return ONLY valid JSON (no markdown, no backticks) with this exact shape:
 {
   "reach": [3-4 colleges],
@@ -67,9 +74,10 @@ Each college object must have ALL of these fields:
   "name": "University Name",
   "location": "City, State/Country",
   "avg_gpa": "X.XX",
-  "avg_sat": "XXXX",
+  "avg_sat": "XXXX or Test-optional",
+  "avg_act": "XX or N/A",
   "acceptance_rate": "XX%",
-  "fit_reason": "1-2 sentences explaining WHY the fit score is what it is — reference the student's major, goals, or preferences specifically.",
+  "fit_reason": "1 sentence explaining why this college fits this specific student's major, goals, or preferences.",
   "url": "https://www.university.edu",
   "profile_strength_needed": <integer 0-100>,
   "fit_score": <integer 0-100>

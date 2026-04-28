@@ -27,6 +27,7 @@ export interface Profile {
   daily_tip_cache: DailyTip | null;
   ai_scholarships_cache: AIScholarshipsCache | null;
   ai_competitions_cache: AICompetitionsCache | null;
+  resume_cache: ResumeCache | null;
   detailed_profile: DetailedProfile | null;
   current_activities: CurrentActivity[] | null;
   completed_activities: CompletedActivity[] | null;
@@ -135,6 +136,7 @@ export interface CollegeCard {
   location: string;
   avg_gpa: string;
   avg_sat: string;
+  avg_act?: string;
   acceptance_rate: string;
   fit_reason: string;
   url?: string;
@@ -210,6 +212,35 @@ export interface AIScholarshipsCache {
 
 export interface AICompetitionsCache {
   competitions: Competition[];
+  generated_at: string;
+}
+
+export interface ResumeActivity {
+  name: string;
+  role: string;
+  description: string;
+  hours_per_week?: string;
+  years?: string;
+}
+
+export interface ResumeAward {
+  name: string;
+  level?: string;
+  year?: string;
+  description: string;
+}
+
+export interface ResumeCache {
+  summary: string;
+  education: {
+    gpa: string;
+    test_scores: string;
+    grade: string;
+    intended_major: string;
+  };
+  activities: ResumeActivity[];
+  awards: ResumeAward[];
+  skills: string[];
   generated_at: string;
 }
 

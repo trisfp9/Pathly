@@ -1,24 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth-context";
 import { createBrowserClient } from "@/lib/supabase";
-import { CurrentActivity, CompletedActivity, ProfileStrengthBreakdown, Award as AwardType } from "@/types";
+import { CurrentActivity, CompletedActivity, ProfileStrengthBreakdown, Award as AwardType, ResumeCache } from "@/types";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import ProgressBar from "@/components/ui/ProgressBar";
 import Skeleton from "@/components/ui/Skeleton";
 import {
   TrendingUp, Sparkles, Plus, Trash2, CheckCircle2, GraduationCap, Award,
-  BookOpen, PenLine, Lock, Copy, Check, ChevronDown, ChevronUp, Wand2, Info,
+  BookOpen, PenLine, Lock, Copy, Check, ChevronDown, ChevronUp, Wand2, Info, FileText, Printer,
 } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
 const GPA_RANGES = ["Below 2.5", "2.5 - 3.0", "3.0 - 3.5", "3.5 - 3.8", "3.8 - 4.0", "4.0+"];
 
-type PageTab = "progress" | "commonapp";
+type PageTab = "progress" | "commonapp" | "resume";
 
 interface PolishResult {
   common_app: string;
@@ -46,12 +46,18 @@ export default function ProgressPage() {
   const [expandedPolish, setExpandedPolish] = useState<Record<number, boolean>>({});
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
+  // Resume state
+  const [resumeCache, setResumeCache] = useState<ResumeCache | null>(null);
+  const [resumeLoading, setResumeLoading] = useState(false);
+  const resumeRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (profile) {
       setGpaRange(profile.gpa_range || "");
       setTestScores(profile.test_scores || "");
       setActivities(profile.current_activities || []);
       setAwards(profile.awards || []);
+      if (profile.resume_cache) setResumeCache(profile.resume_cache);
     }
   }, [profile]);
 
@@ -172,6 +178,29 @@ export default function ProgressPage() {
     });
   };
 
+  const generateResume = async () => {
+    if (!session?.access_token) return;
+    setResumeLoading(true);
+    try {
+      const res = await fetch("/api/resume", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Generation failed");
+      }
+      const data = await res.json();
+      setResumeCache(data);
+      await refreshProfile();
+      toast.success("Resume ready!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to generate resume.");
+    } finally {
+      setResumeLoading(false);
+    }
+  };
+
   if (loading || !profile) {
     return (
       <div className="space-y-8 max-w-3xl">
@@ -194,10 +223,11 @@ export default function ProgressPage() {
       </div>
 
       {/* Page tabs */}
-      <div className="flex gap-1 bg-white/5 rounded-button p-1 w-fit">
+      <div className="flex gap-1 bg-white/5 rounded-button p-1 w-fit flex-wrap">
         {([
-          { id: "progress", label: "My Profile" },
-          { id: "commonapp", label: "Common App Writer ✦" },
+          { id: "progress", label: "My Profile", icon: null },
+          { id: "commonapp", label: "Common App Writer ✦", icon: null },
+          { id: "resume", label: "Resume ✦", icon: FileText },
         ] as const).map((t) => (
           <button
             key={t.id}
@@ -206,6 +236,7 @@ export default function ProgressPage() {
               pageTab === t.id ? "bg-purple text-white" : "text-text-muted hover:text-text-primary"
             }`}
           >
+            {t.icon && <t.icon className="w-4 h-4" />}
             {t.label}
           </button>
         ))}
@@ -682,6 +713,184 @@ export default function ProgressPage() {
               </div>
             )}
             </>}
+          </motion.div>
+        )}
+
+        {/* ── RESUME TAB ── */}
+        {pageTab === "resume" && (
+          <motion.div key="resume" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+
+            {/* Pro paywall */}
+            {!profile.is_pro && (
+              <div className="glass-card p-8 text-center border-pop/15">
+                <Lock className="w-8 h-8 text-pop mx-auto mb-4" />
+                <h3 className="font-heading font-semibold text-xl text-text-primary mb-2">Resume Export is Pro</h3>
+                <p className="text-text-muted text-sm mb-6 max-w-md mx-auto">
+                  Generate a polished, print-ready college application resume from your profile — AI-written with strong action verbs, quantified impact, and professional formatting.
+                </p>
+                <Link href="/pricing">
+                  <Button variant="pop">Upgrade to Pro</Button>
+                </Link>
+              </div>
+            )}
+
+            {profile.is_pro && (
+              <>
+                {/* Generate button row */}
+                <div className="flex items-center gap-4 flex-wrap">
+                  {(() => {
+                    const cooldownHours = resumeCache?.generated_at
+                      ? Math.max(0, 24 - (Date.now() - new Date(resumeCache.generated_at).getTime()) / 3_600_000)
+                      : 0;
+                    const hoursAgo = resumeCache?.generated_at
+                      ? Math.floor((Date.now() - new Date(resumeCache.generated_at).getTime()) / 3_600_000)
+                      : null;
+                    const onCooldown = cooldownHours > 0;
+                    return (
+                      <>
+                        <Button
+                          variant="purple"
+                          onClick={generateResume}
+                          loading={resumeLoading}
+                          disabled={onCooldown}
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          {resumeCache ? (onCooldown ? `Next in ${Math.ceil(cooldownHours)}h` : "Regenerate Resume") : "Generate Resume"}
+                        </Button>
+                        {hoursAgo !== null && (
+                          <span className="text-text-muted text-sm">
+                            Generated {hoursAgo === 0 ? "just now" : `${hoursAgo}h ago`}
+                          </span>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* Loading skeleton */}
+                {resumeLoading && (
+                  <div className="glass-card p-8 space-y-4">
+                    <Skeleton className="h-6 w-48" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                )}
+
+                {/* Rendered resume */}
+                {!resumeLoading && resumeCache && (
+                  <>
+                    <style>{`@media print { body * { visibility: hidden; } #resume-print, #resume-print * { visibility: visible; } #resume-print { position: absolute; left: 0; top: 0; width: 100%; } }`}</style>
+                    <div
+                      id="resume-print"
+                      ref={resumeRef}
+                      className="glass-card p-8 space-y-6 font-mono text-sm print:block print:bg-white print:text-black print:border-none"
+                    >
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div>
+                          <h2 className="font-heading font-bold text-2xl text-text-primary print:text-black">
+                            {profile.name || "Student Name"}
+                          </h2>
+                        </div>
+                        <div className="text-right text-text-muted text-xs print:text-gray-600">
+                          {resumeCache.education.grade && <div>{resumeCache.education.grade}</div>}
+                          {resumeCache.education.intended_major && <div>{resumeCache.education.intended_major}</div>}
+                        </div>
+                      </div>
+
+                      <div className="border-t border-white/20 print:border-gray-400" />
+
+                      {/* Summary */}
+                      {resumeCache.summary && (
+                        <div className="space-y-2">
+                          <p className="text-xs font-bold uppercase tracking-widest text-purple print:text-black">Summary</p>
+                          <p className="text-text-primary text-sm leading-relaxed print:text-black">{resumeCache.summary}</p>
+                        </div>
+                      )}
+
+                      {/* Education */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold uppercase tracking-widest text-purple print:text-black">Education</p>
+                        <div className="flex flex-wrap gap-4 text-text-primary text-sm print:text-black">
+                          {resumeCache.education.gpa && <span>GPA: {resumeCache.education.gpa}</span>}
+                          {resumeCache.education.test_scores && <span>|  Test Scores: {resumeCache.education.test_scores}</span>}
+                          {resumeCache.education.intended_major && <span>|  Target: {resumeCache.education.intended_major}</span>}
+                        </div>
+                      </div>
+
+                      {/* Activities */}
+                      {resumeCache.activities.length > 0 && (
+                        <div className="space-y-3">
+                          <p className="text-xs font-bold uppercase tracking-widest text-purple print:text-black">Activities</p>
+                          <ul className="space-y-3">
+                            {resumeCache.activities.map((a, i) => (
+                              <li key={i}>
+                                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                                  <span className="font-semibold text-text-primary print:text-black">
+                                    {a.name}{a.role ? ` — ${a.role}` : ""}
+                                  </span>
+                                  <span className="text-text-muted text-xs print:text-gray-500">
+                                    {[a.hours_per_week && `${a.hours_per_week}/wk`, a.years].filter(Boolean).join(", ")}
+                                  </span>
+                                </div>
+                                <p className="text-text-muted text-xs mt-0.5 print:text-gray-700">{a.description}</p>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Awards */}
+                      {resumeCache.awards.length > 0 && (
+                        <div className="space-y-3">
+                          <p className="text-xs font-bold uppercase tracking-widest text-purple print:text-black">Awards &amp; Honors</p>
+                          <ul className="space-y-2">
+                            {resumeCache.awards.map((a, i) => (
+                              <li key={i}>
+                                <div className="flex items-baseline gap-2 flex-wrap">
+                                  <span className="font-semibold text-text-primary print:text-black">{a.name}</span>
+                                  {a.level && <span className="text-text-muted text-xs print:text-gray-500">{a.level}</span>}
+                                  {a.year && <span className="text-text-muted text-xs print:text-gray-500">{a.year}</span>}
+                                </div>
+                                <p className="text-text-muted text-xs mt-0.5 print:text-gray-700">{a.description}</p>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Skills */}
+                      {resumeCache.skills.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-xs font-bold uppercase tracking-widest text-purple print:text-black">Skills</p>
+                          <p className="text-text-primary text-sm print:text-black">{resumeCache.skills.join(" · ")}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Print button */}
+                    <div className="flex justify-end print:hidden">
+                      <Button variant="secondary" size="sm" onClick={() => window.print()}>
+                        <Printer className="w-4 h-4" /> Print / Save as PDF
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                {/* Empty state */}
+                {!resumeLoading && !resumeCache && (
+                  <div className="glass-card p-8 text-center">
+                    <FileText className="w-10 h-10 text-text-muted/40 mx-auto mb-3" />
+                    <p className="text-text-muted text-sm">
+                      Click &ldquo;Generate Resume&rdquo; to create a polished resume from your profile data.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
