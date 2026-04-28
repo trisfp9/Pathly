@@ -225,7 +225,7 @@ export default function OpportunitiesPage() {
                           <Badge variant="muted"><BarChart3 className="w-3 h-3 mr-1" /> {college.acceptance_rate}</Badge>
                         </div>
 
-                        {/* Scores panel */}
+                        {/* Scores panel — always show all 3 columns */}
                         {(college.fit_score != null || college.profile_strength_needed != null) && (() => {
                           const hasMeasured = !!profile.profile_strength_updated_at;
                           const odds = (college.profile_strength_needed != null && hasMeasured)
@@ -234,46 +234,36 @@ export default function OpportunitiesPage() {
                           const fitScore = college.fit_score;
                           const needed = college.profile_strength_needed;
 
-                          const fitColor = fitScore == null ? "" : fitScore >= 80 ? "text-pop" : fitScore >= 60 ? "text-amber-400" : "text-red-400";
-                          const oddsColor = odds == null ? "" : odds >= 60 ? "text-pop" : odds >= 35 ? "text-amber-400" : "text-red-400";
-
-                          const colCount = [fitScore, odds ?? (needed != null ? "ph" : null), needed].filter(Boolean).length || 1;
+                          const fitColor = fitScore == null ? "text-text-muted/40" : fitScore >= 80 ? "text-pop" : fitScore >= 60 ? "text-amber-400" : "text-red-400";
+                          const oddsColor = odds == null ? "text-text-muted/40" : odds >= 60 ? "text-pop" : odds >= 35 ? "text-amber-400" : "text-red-400";
 
                           return (
                             <div className="relative mb-4 group/scores">
-                              <div className={`bg-white/5 rounded-xl p-3 grid gap-0 divide-x divide-white/10`}
-                                style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}>
-                                {fitScore != null && (
-                                  <div className="text-center px-2">
-                                    <p className="text-text-muted text-[10px] uppercase tracking-wide mb-1">Fit</p>
-                                    <p className={`font-heading font-bold text-xl ${fitColor}`}>{fitScore}</p>
-                                    <p className="text-text-muted text-[10px]">/ 100</p>
-                                  </div>
-                                )}
-                                {needed != null && (
-                                  <div className="text-center px-2">
-                                    {hasMeasured && odds != null ? (
-                                      <>
-                                        <p className="text-text-muted text-[10px] uppercase tracking-wide mb-1">Odds</p>
-                                        <p className={`font-heading font-bold text-xl ${oddsColor}`}>{odds}%</p>
-                                        <p className="text-text-muted text-[10px]">admission</p>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <p className="text-text-muted text-[10px] uppercase tracking-wide mb-1">Odds</p>
-                                        <p className="font-heading font-bold text-xl text-text-muted/40">—</p>
-                                        <p className="text-text-muted text-[10px]">needs score</p>
-                                      </>
-                                    )}
-                                  </div>
-                                )}
-                                {needed != null && (
-                                  <div className="text-center px-2">
-                                    <p className="text-text-muted text-[10px] uppercase tracking-wide mb-1">Required</p>
-                                    <p className="font-heading font-bold text-xl text-text-primary">{needed}</p>
-                                    <p className="text-text-muted text-[10px]">score</p>
-                                  </div>
-                                )}
+                              <div className="bg-white/5 rounded-xl p-3 grid grid-cols-3 gap-0 divide-x divide-white/10">
+                                {/* Fit */}
+                                <div className="text-center px-2">
+                                  <p className="text-text-muted text-[10px] uppercase tracking-wide mb-1">Fit</p>
+                                  <p className={`font-heading font-bold text-xl ${fitColor}`}>
+                                    {fitScore != null ? fitScore : "—"}
+                                  </p>
+                                  <p className="text-text-muted text-[10px]">{fitScore != null ? "/ 100" : "regen list"}</p>
+                                </div>
+                                {/* Odds */}
+                                <div className="text-center px-2">
+                                  <p className="text-text-muted text-[10px] uppercase tracking-wide mb-1">Odds</p>
+                                  <p className={`font-heading font-bold text-xl ${oddsColor}`}>
+                                    {odds != null ? `${odds}%` : "—"}
+                                  </p>
+                                  <p className="text-text-muted text-[10px]">{hasMeasured ? "admission" : "needs score"}</p>
+                                </div>
+                                {/* Required */}
+                                <div className="text-center px-2">
+                                  <p className="text-text-muted text-[10px] uppercase tracking-wide mb-1">Required</p>
+                                  <p className={`font-heading font-bold text-xl ${needed != null ? "text-text-primary" : "text-text-muted/40"}`}>
+                                    {needed != null ? needed : "—"}
+                                  </p>
+                                  <p className="text-text-muted text-[10px]">score</p>
+                                </div>
                                 {/* Info icon */}
                                 <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-surface border border-white/10 flex items-center justify-center cursor-default">
                                   <Info className="w-2.5 h-2.5 text-text-muted" />
@@ -288,18 +278,14 @@ export default function OpportunitiesPage() {
                                       <span className="text-text-muted">How well this college matches your major, goals, and environment preferences (0 = poor match, 100 = ideal match).</span>
                                     </li>
                                   )}
-                                  {needed != null && (
-                                    <li className="flex gap-2">
-                                      <span className="font-bold text-text-primary shrink-0">Odds {odds != null ? `${odds}%` : "—"}</span>
-                                      <span className="text-text-muted">Estimated admission probability combining your profile strength and fit score. {!hasMeasured && "Calculate your profile strength first."}</span>
-                                    </li>
-                                  )}
-                                  {needed != null && (
-                                    <li className="flex gap-2">
-                                      <span className="font-bold text-text-primary shrink-0">Required {needed}</span>
-                                      <span className="text-text-muted">Minimum profile score competitive applicants typically have. Your score: {hasMeasured ? profile.profile_strength : "not measured yet"}.</span>
-                                    </li>
-                                  )}
+                                  <li className="flex gap-2">
+                                    <span className={`font-bold shrink-0 ${fitColor}`}>Odds {odds != null ? `${odds}%` : "—"}</span>
+                                    <span className="text-text-muted">Estimated admission probability combining your profile strength and fit score. {!hasMeasured && "Calculate your profile strength first."}</span>
+                                  </li>
+                                  <li className="flex gap-2">
+                                    <span className="font-bold text-text-primary shrink-0">Required {needed ?? "—"}</span>
+                                    <span className="text-text-muted">Minimum profile score competitive applicants typically have. Your score: {hasMeasured ? profile.profile_strength : "not measured yet"}.</span>
+                                  </li>
                                 </ul>
                                 {!hasMeasured && (
                                   <p className="mt-2 text-[10px] text-purple border-t border-white/10 pt-2">
