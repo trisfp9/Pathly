@@ -67,7 +67,7 @@ Return ONLY valid JSON (no markdown, no backticks) with this exact shape:
 
 Requirements:
 - 4 DISTINCT project ideas, each tailored to the student's profile (grade, interests, dream school, existing activities). Vary difficulty and scope so they have real choice.
-- Use REAL competition/program names (e.g. "Intel ISEF", "MIT PRIMES", "USABO", "Regeneron STS"). No made-up names.
+- Competitions/programs: PRIORITIZE real competitions and programs available in the student's country (${profile.country || "their country"}). Include 2-4 local/national competitions specific to that country, then 1-2 well-known international ones (e.g. Intel ISEF, Google Science Fair, IOI, IMO, Regeneron STS) only if they are genuinely open to international participants. If you're unsure whether a competition accepts students from that country, leave it out rather than listing something inaccessible. No made-up names — only real, verifiable competitions.
 - Tasks are a FLAT list with week numbers (1-8 range). Each task is a single concrete action the student can mark done. Aim for 3-5 tasks per week across 4-8 weeks.
 - Be specific. Avoid generic filler like "research the topic" — say what to research, where, and what to produce.`;
 

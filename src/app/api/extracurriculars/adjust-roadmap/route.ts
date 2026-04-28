@@ -62,7 +62,9 @@ Return ONLY valid JSON (no markdown, no backticks) with this shape:
   "common_app_tip": "..."
 }
 
-Keep ids stable for tasks you preserve (and their done state). Use a fresh id like "new-1", "new-2" for brand-new tasks.`;
+Keep ids stable for tasks you preserve (and their done state). Use a fresh id like "new-1", "new-2" for brand-new tasks.
+
+If you add or change competitions, prioritize real ones available in the student's country (${profile.country || "their country"}), plus a couple of well-known international competitions open to international participants. No made-up names.`;
 
     const userMessage = `Current roadmap (category: ${roadmap.category}):
 Project idea: ${roadmap.project_idea}
