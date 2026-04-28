@@ -96,11 +96,14 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
 
         <div className="space-y-2 pt-4 border-t border-white/5">
           {profile?.is_pro ? (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-button text-sm font-semibold bg-gradient-to-r from-pop/15 to-purple/15 border border-pop/20">
+            <Link
+              href="/billing"
+              className="flex items-center gap-3 px-4 py-3 rounded-button text-sm font-semibold bg-gradient-to-r from-pop/15 to-purple/15 border border-pop/20 hover:border-pop/40 transition-colors"
+            >
               <Crown className="w-5 h-5 text-pop" />
               <span className="text-text-primary">Pro Member</span>
               <span className="ml-auto text-[10px] uppercase tracking-wider text-pop font-bold">Active</span>
-            </div>
+            </Link>
           ) : (
             <Link
               href="/pricing"

@@ -18,13 +18,15 @@ export default function AuthPage() {
 }
 
 function AuthContent() {
-  const [mode, setMode] = useState<"signin" | "signup">("signup");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect");
+  const [mode, setMode] = useState<"signin" | "signup">(
+    searchParams.get("mode") === "signin" ? "signin" : "signup"
+  );
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const supabase = createBrowserClient();
 
   const handleSubmit = async (e: React.FormEvent) => {

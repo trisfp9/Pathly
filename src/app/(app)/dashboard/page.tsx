@@ -211,7 +211,7 @@ export default function DashboardPage() {
       {/* Quick Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Profile Strength", value: `${profile.profile_strength}%`, icon: TrendingUp, color: "text-accent", href: "/progress" },
+          { label: "Profile Strength", value: profile.profile_strength_updated_at ? `${profile.profile_strength}%` : "Unmeasured", icon: TrendingUp, color: "text-accent", href: "/progress" },
           { label: "Items Saved", value: savedCount === null ? "—" : String(savedCount), icon: BookmarkCheck, color: "text-pop", href: "/saved" },
           { label: "Messages Used", value: `${messagesUsed}/${messagesMax}`, icon: MessageSquare, color: "text-orange-400", href: "/counselor" },
         ].map((stat, i) => (

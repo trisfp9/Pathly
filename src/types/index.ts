@@ -134,6 +134,7 @@ export interface CollegeCard {
   avg_sat: string;
   acceptance_rate: string;
   fit_reason: string;
+  url?: string;
 }
 
 export interface DailyTip {

@@ -10,7 +10,7 @@ import { competitions as allCompetitions } from "@/lib/competitions";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import { CardSkeleton } from "@/components/ui/Skeleton";
-import { GraduationCap, Trophy, Award, Search, Bookmark, MapPin, BarChart3, TrendingUp, Sparkles, RotateCw, ExternalLink } from "lucide-react";
+import { GraduationCap, Trophy, Award, Search, Bookmark, BookmarkCheck, MapPin, BarChart3, TrendingUp, Sparkles, RotateCw, ExternalLink } from "lucide-react";
 import ProgressBar from "@/components/ui/ProgressBar";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -34,12 +34,27 @@ export default function OpportunitiesPage() {
   const [collegeLoading, setCollegeLoading] = useState(false);
   const [scholarshipFilter, setScholarshipFilter] = useState<string>("all");
   const [competitionFilter, setCompetitionFilter] = useState<string>("all");
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (profile?.college_list_cache) {
       setCollegeList(profile.college_list_cache);
     }
   }, [profile]);
+
+  // Load saved item IDs so we can show filled bookmark icons
+  useEffect(() => {
+    if (!profile?.id) return;
+    const load = async () => {
+      const { createBrowserClient } = await import("@/lib/supabase");
+      const supabase = createBrowserClient();
+      const { data } = await supabase
+        .from("saved_items")
+        .select("item_id");
+      if (data) setSavedIds(new Set(data.map((r: { item_id: string }) => r.item_id)));
+    };
+    load();
+  }, [profile?.id]);
 
   const generateColleges = async () => {
     if (!session?.access_token) return;
@@ -76,6 +91,8 @@ export default function OpportunitiesPage() {
 
   const saveItem = async (type: string, itemId: string, itemData: Record<string, unknown>) => {
     if (!session?.access_token) return;
+    if (savedIds.has(itemId)) return; // already saved
+    setSavedIds((prev) => new Set(prev).add(itemId)); // optimistic
     try {
       const { createBrowserClient } = await import("@/lib/supabase");
       const supabase = createBrowserClient();
@@ -88,6 +105,7 @@ export default function OpportunitiesPage() {
       if (error) throw error;
       toast.success("Saved!");
     } catch {
+      setSavedIds((prev) => { const next = new Set(prev); next.delete(itemId); return next; });
       toast.error("Failed to save.");
     }
   };
@@ -187,8 +205,14 @@ export default function OpportunitiesPage() {
                       <motion.div key={college.name} initial="hidden" animate="visible" variants={fadeUp} custom={i} className="glass-card p-5">
                         <div className="flex items-start justify-between mb-2">
                           <h4 className="font-heading font-semibold text-text-primary">{college.name}</h4>
-                          <button onClick={() => saveItem("college", college.name, college as unknown as Record<string, unknown>)} className="text-text-muted hover:text-purple transition-colors">
-                            <Bookmark className="w-4 h-4" />
+                          <button
+                            onClick={() => saveItem("college", college.name, college as unknown as Record<string, unknown>)}
+                            className={`transition-colors ${savedIds.has(college.name) ? "text-purple cursor-default" : "text-text-muted hover:text-purple"}`}
+                            title={savedIds.has(college.name) ? "Saved" : "Save"}
+                          >
+                            {savedIds.has(college.name)
+                              ? <BookmarkCheck className="w-4 h-4" />
+                              : <Bookmark className="w-4 h-4" />}
                           </button>
                         </div>
                         <div className="flex items-center gap-2 text-text-muted text-xs mb-2">
@@ -199,7 +223,17 @@ export default function OpportunitiesPage() {
                           <Badge variant="muted">SAT: {college.avg_sat}</Badge>
                           <Badge variant="muted"><BarChart3 className="w-3 h-3 mr-1" /> {college.acceptance_rate}</Badge>
                         </div>
-                        <p className="text-text-muted text-xs">{college.fit_reason}</p>
+                        <p className="text-text-muted text-xs mb-3">{college.fit_reason}</p>
+                        {college.url && (
+                          <a
+                            href={college.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-purple hover:text-purple-light text-xs font-medium transition-colors"
+                          >
+                            Visit website <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
                       </motion.div>
                     ))}
                   </div>
@@ -235,8 +269,12 @@ export default function OpportunitiesPage() {
               <motion.div key={s.id} initial="hidden" animate="visible" variants={fadeUp} custom={i} className="glass-card p-5">
                 <div className="flex items-start justify-between mb-2">
                   <h4 className="font-heading font-semibold text-text-primary text-sm">{s.name}</h4>
-                  <button onClick={() => saveItem("scholarship", s.id, s as unknown as Record<string, unknown>)} className="text-text-muted hover:text-purple transition-colors">
-                    <Bookmark className="w-4 h-4" />
+                  <button
+                    onClick={() => saveItem("scholarship", s.id, s as unknown as Record<string, unknown>)}
+                    className={`transition-colors flex-shrink-0 ${savedIds.has(s.id) ? "text-purple cursor-default" : "text-text-muted hover:text-purple"}`}
+                    title={savedIds.has(s.id) ? "Saved" : "Save"}
+                  >
+                    {savedIds.has(s.id) ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
                   </button>
                 </div>
                 <p className="text-purple font-heading font-bold text-lg mb-1">{s.amount}</p>
@@ -289,8 +327,12 @@ export default function OpportunitiesPage() {
               <motion.div key={c.id} initial="hidden" animate="visible" variants={fadeUp} custom={i} className="glass-card p-5">
                 <div className="flex items-start justify-between mb-2">
                   <h4 className="font-heading font-semibold text-text-primary text-sm">{c.name}</h4>
-                  <button onClick={() => saveItem("competition", c.id, c as unknown as Record<string, unknown>)} className="text-text-muted hover:text-purple transition-colors">
-                    <Bookmark className="w-4 h-4" />
+                  <button
+                    onClick={() => saveItem("competition", c.id, c as unknown as Record<string, unknown>)}
+                    className={`transition-colors flex-shrink-0 ${savedIds.has(c.id) ? "text-purple cursor-default" : "text-text-muted hover:text-purple"}`}
+                    title={savedIds.has(c.id) ? "Saved" : "Save"}
+                  >
+                    {savedIds.has(c.id) ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
                   </button>
                 </div>
                 <p className="text-text-muted text-xs mb-3">{c.description}</p>

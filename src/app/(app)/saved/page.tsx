@@ -193,7 +193,17 @@ export default function SavedPage() {
                         </Badge>
                       )}
                     </div>
-                    {d.fit_reason && <p className="text-text-muted text-xs">{d.fit_reason}</p>}
+                    {d.fit_reason && <p className="text-text-muted text-xs mb-2">{d.fit_reason}</p>}
+                    {d.url && (
+                      <a
+                        href={d.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-purple hover:text-purple-light text-xs font-medium transition-colors"
+                      >
+                        Visit website <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
                   </>
                 );
               })()}

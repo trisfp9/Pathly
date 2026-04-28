@@ -41,12 +41,15 @@ Return ONLY valid JSON (no markdown, no backticks) with this exact shape:
 Each college should have:
 {
   "name": "University Name",
-  "location": "City, State",
+  "location": "City, State/Country",
   "avg_gpa": "X.X",
   "avg_sat": "XXXX",
   "acceptance_rate": "XX%",
-  "fit_reason": "One sentence about why this school fits the student."
+  "fit_reason": "One sentence about why this school fits the student.",
+  "url": "https://www.university.edu"
 }
+
+Include the official university website URL. Only use real, verifiable URLs — if unsure of the exact URL, use the main domain (e.g. https://www.mit.edu).
 
 Consider the student's GPA, test scores, major interest, dream college, aiming level, and target country. Use real, current data. If unsure about stats, give reasonable estimates.`;
 

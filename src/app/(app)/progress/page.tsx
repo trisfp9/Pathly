@@ -13,6 +13,7 @@ import {
   TrendingUp, Sparkles, Plus, Trash2, CheckCircle2, GraduationCap, Award,
   BookOpen, PenLine, Lock, Copy, Check, ChevronDown, ChevronUp, Wand2, Info,
 } from "lucide-react";
+import Link from "next/link";
 import toast from "react-hot-toast";
 
 const GPA_RANGES = ["Below 2.5", "2.5 - 3.0", "3.0 - 3.5", "3.5 - 3.8", "3.8 - 4.0", "4.0+"];
@@ -194,7 +195,7 @@ export default function ProgressPage() {
       <div className="flex gap-1 bg-white/5 rounded-button p-1 w-fit">
         {([
           { id: "progress", label: "My Profile" },
-          { id: "commonapp", label: "Common App Writer" },
+          { id: "commonapp", label: "Common App Writer ✦" },
         ] as const).map((t) => (
           <button
             key={t.id}
@@ -239,7 +240,7 @@ export default function ProgressPage() {
                     {profile.profile_strength_updated_at ? `${strength}%` : "—"}
                   </span>
                   <span className="text-text-muted text-sm">
-                    {profile.profile_strength_updated_at ? "overall" : "not yet graded"}
+                    {profile.profile_strength_updated_at ? "overall" : "unmeasured"}
                   </span>
                 </div>
                 <ProgressBar
@@ -517,7 +518,22 @@ export default function ProgressPage() {
         {pageTab === "commonapp" && (
           <motion.div key="commonapp" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
 
+            {/* Pro paywall */}
+            {!profile.is_pro && (
+              <div className="glass-card p-8 text-center border-pop/15">
+                <Lock className="w-8 h-8 text-pop mx-auto mb-4" />
+                <h3 className="font-heading font-semibold text-xl text-text-primary mb-2">Common App Writer is Pro</h3>
+                <p className="text-text-muted text-sm mb-6 max-w-md mx-auto">
+                  Get AI-polished activity descriptions ready to paste into Common App (150 chars) and UC applications (350 chars) — with numbers, impact, and strong action verbs.
+                </p>
+                <Link href="/pricing">
+                  <Button variant="pop">Upgrade to Pro</Button>
+                </Link>
+              </div>
+            )}
+
             {/* Explainer banner */}
+            {profile.is_pro && <>
             <div className="glass-card p-5 border-purple/15">
               <div className="flex items-start gap-3">
                 <Info className="w-5 h-5 text-purple flex-shrink-0 mt-0.5" />
@@ -644,6 +660,7 @@ export default function ProgressPage() {
                 </button>
               </div>
             )}
+            </>}
           </motion.div>
         )}
       </AnimatePresence>
