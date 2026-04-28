@@ -61,13 +61,14 @@ Include a mix of:
 
 Only use real, verifiable scholarship URLs. Do not invent scholarships.`;
 
-    const result = await callClaude(systemPrompt, "Generate my personalised scholarship list.");
+    const result = await callClaude(systemPrompt, "Generate my personalised scholarship list.", 2, 3000);
 
     let parsed;
     try {
       const jsonMatch = result.match(/\{[\s\S]*\}/);
       parsed = JSON.parse(jsonMatch ? jsonMatch[0] : result);
-    } catch {
+    } catch (parseErr) {
+      console.error("Scholarship JSON parse error:", parseErr, "\nRaw result:", result.slice(0, 500));
       return NextResponse.json({ error: "Failed to parse scholarship list. Please try again." }, { status: 500 });
     }
 

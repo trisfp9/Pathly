@@ -152,19 +152,20 @@ export async function streamCounselorResponse(
 export async function callClaude(
   systemPrompt: string,
   userMessage: string,
-  retries = 2
+  retries = 2,
+  maxTokens = 1500
 ): Promise<string> {
   const anthropic = getAnthropicClient();
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30000);
+      const timeout = setTimeout(() => controller.abort(), 55000);
 
       const response = await anthropic.messages.create(
         {
           model: "claude-sonnet-4-20250514",
-          max_tokens: 1500,
+          max_tokens: maxTokens,
           system: [
             {
               type: "text",
