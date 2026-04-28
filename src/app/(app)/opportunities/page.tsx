@@ -229,7 +229,7 @@ export default function OpportunitiesPage() {
                         {(college.fit_score != null || college.profile_strength_needed != null) && (() => {
                           const hasMeasured = !!profile.profile_strength_updated_at;
                           const odds = (college.profile_strength_needed != null && hasMeasured)
-                            ? getCombinedOdds(profile.profile_strength, college.profile_strength_needed, college.fit_score ?? 60)
+                            ? getCombinedOdds(profile.profile_strength, college.profile_strength_needed, college.fit_score ?? null)
                             : null;
                           const fitScore = college.fit_score;
                           const needed = college.profile_strength_needed;
@@ -457,10 +457,12 @@ function getProfileLikelihood(studentScore: number, neededScore: number): number
   return Math.max(1, Math.min(99, Math.round(raw)));
 }
 
-// Combined odds: 70% profile-based likelihood + 30% fit score.
-// A high fit (90) adds up to ~9 pts; a low fit (30) subtracts up to ~9 pts.
-function getCombinedOdds(studentScore: number, neededScore: number, fitScore: number): number {
+// Combined odds: if fit score available, blend 70% profile likelihood + 30% fit score.
+// If no fit score (old cached list), use pure profile likelihood so we don't manufacture a fake constant.
+function getCombinedOdds(studentScore: number, neededScore: number, fitScore: number | null): number {
   const profileOdds = getProfileLikelihood(studentScore, neededScore);
+  if (fitScore == null) return profileOdds;
+  // Fit nudges odds: high fit (90+) adds ~+9pts, low fit (30) subtracts ~-9pts.
   const combined = profileOdds * 0.70 + fitScore * 0.30;
   return Math.max(1, Math.min(99, Math.round(combined)));
 }
