@@ -203,11 +203,24 @@ export default function OpportunitiesPage() {
                   <div className="grid md:grid-cols-2 gap-4">
                     {collegeList[tier]?.map((college, i) => (
                       <motion.div key={college.name} initial="hidden" animate="visible" variants={fadeUp} custom={i} className="glass-card p-5">
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-heading font-semibold text-text-primary">{college.name}</h4>
+                        <div className="flex items-start justify-between mb-2 gap-2">
+                          <div className="flex items-start gap-2 flex-1 min-w-0">
+                            <h4 className="font-heading font-semibold text-text-primary leading-tight">{college.name}</h4>
+                            {college.fit_score != null && (
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-badge text-xs font-bold flex-shrink-0 mt-0.5 ${
+                                college.fit_score >= 80
+                                  ? "bg-pop/15 text-pop border border-pop/25"
+                                  : college.fit_score >= 60
+                                  ? "bg-amber-400/15 text-amber-400 border border-amber-400/25"
+                                  : "bg-red-400/15 text-red-400 border border-red-400/25"
+                              }`}>
+                                Fit {college.fit_score}
+                              </span>
+                            )}
+                          </div>
                           <button
                             onClick={() => saveItem("college", college.name, college as unknown as Record<string, unknown>)}
-                            className={`transition-colors ${savedIds.has(college.name) ? "text-purple cursor-default" : "text-text-muted hover:text-purple"}`}
+                            className={`transition-colors flex-shrink-0 ${savedIds.has(college.name) ? "text-purple cursor-default" : "text-text-muted hover:text-purple"}`}
                             title={savedIds.has(college.name) ? "Saved" : "Save"}
                           >
                             {savedIds.has(college.name)

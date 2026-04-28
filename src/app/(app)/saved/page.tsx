@@ -175,28 +175,42 @@ export default function SavedPage() {
 
               {/* College card */}
               {item.item_type === "college" && (() => {
-                const d = item.item_data as Record<string, string | undefined>;
+                const d = item.item_data as Record<string, string | number | undefined>;
+                const fitScore = typeof d.fit_score === "number" ? d.fit_score : undefined;
                 return (
                   <>
-                    <h4 className="font-heading font-semibold text-text-primary mb-1">{d.name || ""}</h4>
+                    <div className="flex items-start gap-2 mb-1">
+                      <h4 className="font-heading font-semibold text-text-primary leading-tight">{String(d.name || "")}</h4>
+                      {fitScore != null && (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-badge text-xs font-bold flex-shrink-0 mt-0.5 border ${
+                          fitScore >= 80
+                            ? "bg-pop/15 text-pop border-pop/25"
+                            : fitScore >= 60
+                            ? "bg-amber-400/15 text-amber-400 border-amber-400/25"
+                            : "bg-red-400/15 text-red-400 border-red-400/25"
+                        }`}>
+                          Fit {fitScore}
+                        </span>
+                      )}
+                    </div>
                     {d.location && (
                       <div className="flex items-center gap-1 text-text-muted text-xs mb-2">
-                        <MapPin className="w-3 h-3" /> {d.location}
+                        <MapPin className="w-3 h-3" /> {String(d.location)}
                       </div>
                     )}
                     <div className="flex gap-2 flex-wrap mb-3">
-                      {d.avg_gpa && <Badge variant="muted">GPA: {d.avg_gpa}</Badge>}
-                      {d.avg_sat && <Badge variant="muted">SAT: {d.avg_sat}</Badge>}
+                      {d.avg_gpa && <Badge variant="muted">GPA: {String(d.avg_gpa)}</Badge>}
+                      {d.avg_sat && <Badge variant="muted">SAT: {String(d.avg_sat)}</Badge>}
                       {d.acceptance_rate && (
                         <Badge variant="muted">
-                          <BarChart3 className="w-3 h-3 mr-1" /> {d.acceptance_rate}
+                          <BarChart3 className="w-3 h-3 mr-1" /> {String(d.acceptance_rate)}
                         </Badge>
                       )}
                     </div>
-                    {d.fit_reason && <p className="text-text-muted text-xs mb-2">{d.fit_reason}</p>}
+                    {d.fit_reason && <p className="text-text-muted text-xs mb-2">{String(d.fit_reason)}</p>}
                     {d.url && (
                       <a
-                        href={d.url}
+                        href={String(d.url)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-purple hover:text-purple-light text-xs font-medium transition-colors"
