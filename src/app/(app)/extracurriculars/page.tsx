@@ -244,14 +244,23 @@ export default function ExtracurricularsPage() {
       const supabase = createBrowserClient();
       const next = [...(profile.roadmaps || []), newRoadmap];
       const { error } = await supabase.from("profiles").update({ roadmaps: next }).eq("id", profile.id);
-      if (error) throw error;
+      if (error) {
+        console.error("Roadmap save error:", error);
+        // Common cause: column doesn't exist yet — instruct user to run migration
+        const msg = error.message?.includes("column") || error.code === "PGRST204"
+          ? "Run this in Supabase SQL Editor: ALTER TABLE profiles ADD COLUMN IF NOT EXISTS roadmaps jsonb;"
+          : `Failed to save: ${error.message}`;
+        toast.error(msg, { duration: 8000 });
+        return;
+      }
       await refreshProfile();
       setCreatingFor(null);
       setDraftRoadmap(null);
       setActiveRoadmapId(newRoadmap.id);
       setMainTab("roadmaps");
       toast.success("Roadmap saved!");
-    } catch {
+    } catch (err) {
+      console.error("Roadmap save error:", err);
       toast.error("Failed to save roadmap.");
     }
   };
@@ -270,13 +279,18 @@ export default function ExtracurricularsPage() {
         updated_at: new Date().toISOString(),
       };
     });
-    // Optimistic
     try {
       const { createBrowserClient } = await import("@/lib/supabase");
       const supabase = createBrowserClient();
-      await supabase.from("profiles").update({ roadmaps: next }).eq("id", profile.id);
+      const { error } = await supabase.from("profiles").update({ roadmaps: next }).eq("id", profile.id);
+      if (error) {
+        console.error("Task toggle error:", error);
+        toast.error(`Failed to save task: ${error.message}`);
+        return;
+      }
       await refreshProfile();
-    } catch {
+    } catch (err) {
+      console.error("Task toggle error:", err);
       toast.error("Failed to save task.");
     }
   };
