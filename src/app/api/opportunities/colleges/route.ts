@@ -111,7 +111,7 @@ The fit_reason must explain WHY the fit score is what it is for this specific st
 Only use real, verifiable college website URLs.
 Consider the student's GPA, test scores, major interest, dream college, aiming level, and target country. Use real, current data.`;
 
-    const result = await callClaude(systemPrompt, "Generate my personalized college list.");
+    const result = await callClaude(systemPrompt, "Generate my personalized college list.", 2, 4000);
 
     let colleges;
     try {
@@ -121,7 +121,8 @@ Consider the student's GPA, test scores, major interest, dream college, aiming l
       } else {
         colleges = JSON.parse(result);
       }
-    } catch {
+    } catch (parseErr) {
+      console.error("College list JSON parse error:", parseErr, "\nRaw result:", result.slice(0, 500));
       return NextResponse.json({ error: "Failed to parse college list. Please try again." }, { status: 500 });
     }
 
