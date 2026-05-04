@@ -174,7 +174,14 @@ function AuthContent() {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-text-muted mb-2">Password</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm text-text-muted">Password</label>
+                    {mode === "signin" && (
+                      <Link href="/auth/reset-password" className="text-xs text-purple hover:underline">
+                        Forgot password?
+                      </Link>
+                    )}
+                  </div>
                   <input
                     type="password"
                     required

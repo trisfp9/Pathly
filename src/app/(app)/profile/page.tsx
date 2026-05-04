@@ -9,7 +9,7 @@ import ProgressBar from "@/components/ui/ProgressBar";
 import Badge from "@/components/ui/Badge";
 import Skeleton from "@/components/ui/Skeleton";
 import { createBrowserClient } from "@/lib/supabase";
-import { User, Crown, Trash2, RotateCw, Shield } from "lucide-react";
+import { User, Crown, Trash2, RotateCw, Shield, Mail, Lock, LogOut, ChevronDown, ChevronUp, Settings } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -27,6 +27,16 @@ export default function ProfilePage() {
   const supabase = createBrowserClient();
   const [deleting, setDeleting] = useState(false);
   const [localProfile, setLocalProfile] = useState(profile);
+
+  // Account settings state
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailLoading, setEmailLoading] = useState(false);
+
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -68,6 +78,49 @@ export default function ProfilePage() {
       toast.error("Failed to delete account.");
     }
     setDeleting(false);
+  };
+
+  const handleEmailChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEmail.trim()) return;
+    setEmailLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ email: newEmail });
+      if (error) throw error;
+      toast.success("Confirmation email sent! Check your inbox to verify the new address.");
+      setEmailOpen(false);
+      setNewEmail("");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to update email";
+      toast.error(message);
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) { toast.error("Passwords don't match"); return; }
+    if (newPassword.length < 6) { toast.error("Password must be at least 6 characters"); return; }
+    setPasswordLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success("Password updated successfully.");
+      setPasswordOpen(false);
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to update password";
+      toast.error(message);
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push("/");
   };
 
   if (loading || !localProfile) {
@@ -133,6 +186,114 @@ export default function ProfilePage() {
           </p>
         </motion.div>
       </Link>
+
+      {/* Account Settings */}
+      <div className="glass-card p-6 space-y-1">
+        <h2 className="font-heading font-semibold text-text-primary flex items-center gap-2 mb-4">
+          <Settings className="w-5 h-5 text-purple" /> Account Settings
+        </h2>
+
+        {/* Current email (read-only display) */}
+        <div className="flex items-center justify-between py-3 border-b border-white/8">
+          <div className="flex items-center gap-3">
+            <Mail className="w-4 h-4 text-text-muted" />
+            <div>
+              <p className="text-sm text-text-primary">Email address</p>
+              <p className="text-xs text-text-muted mt-0.5">{user?.email}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => { setEmailOpen((o) => !o); setPasswordOpen(false); }}
+            className="text-xs text-purple hover:underline flex items-center gap-1"
+          >
+            Change {emailOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+        </div>
+
+        {emailOpen && (
+          <form onSubmit={handleEmailChange} className="pt-3 pb-2 space-y-3">
+            <input
+              type="email"
+              required
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="New email address"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-button text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:border-purple/50 transition-colors text-sm"
+            />
+            <p className="text-text-muted/60 text-xs">A confirmation link will be sent to the new address.</p>
+            <div className="flex gap-2">
+              <Button type="submit" variant="purple" size="sm" loading={emailLoading}>
+                Send confirmation
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setEmailOpen(false)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {/* Password */}
+        <div className="flex items-center justify-between py-3 border-b border-white/8">
+          <div className="flex items-center gap-3">
+            <Lock className="w-4 h-4 text-text-muted" />
+            <div>
+              <p className="text-sm text-text-primary">Password</p>
+              <p className="text-xs text-text-muted mt-0.5">••••••••</p>
+            </div>
+          </div>
+          <button
+            onClick={() => { setPasswordOpen((o) => !o); setEmailOpen(false); }}
+            className="text-xs text-purple hover:underline flex items-center gap-1"
+          >
+            Change {passwordOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+        </div>
+
+        {passwordOpen && (
+          <form onSubmit={handlePasswordChange} className="pt-3 pb-2 space-y-3">
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="New password (min 6 characters)"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-button text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:border-purple/50 transition-colors text-sm"
+            />
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm new password"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-button text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:border-purple/50 transition-colors text-sm"
+            />
+            <div className="flex gap-2">
+              <Button type="submit" variant="purple" size="sm" loading={passwordLoading}>
+                Update password
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setPasswordOpen(false)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {/* Sign out */}
+        <div className="flex items-center justify-between py-3">
+          <div className="flex items-center gap-3">
+            <LogOut className="w-4 h-4 text-text-muted" />
+            <p className="text-sm text-text-primary">Sign out</p>
+          </div>
+          <button
+            onClick={handleSignOut}
+            className="text-xs text-red-400 hover:underline"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
 
       {/* Editable fields */}
       <div className="glass-card p-6 space-y-6">

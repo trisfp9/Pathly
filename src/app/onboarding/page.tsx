@@ -36,7 +36,7 @@ interface OnboardingData {
 const TOTAL_STEPS = 9;
 
 export default function OnboardingPage() {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0); // 0 = welcome screen, 1-9 = setup steps
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<OnboardingData>({
     name: "", grade: "", country: "", target_country: "",
@@ -174,8 +174,12 @@ export default function OnboardingPage() {
             </div>
             <span className="font-heading font-bold text-lg text-text-primary">Pathly</span>
           </div>
-          <ProgressBar value={step} max={TOTAL_STEPS} variant="purple" size="sm" />
-          <p className="text-text-muted text-xs mt-2">Step {step} of {TOTAL_STEPS}</p>
+          {step > 0 && (
+            <>
+              <ProgressBar value={step} max={TOTAL_STEPS} variant="purple" size="sm" />
+              <p className="text-text-muted text-xs mt-2">Step {step} of {TOTAL_STEPS}</p>
+            </>
+          )}
         </motion.div>
 
         <AnimatePresence mode="wait">
@@ -187,6 +191,90 @@ export default function OnboardingPage() {
             transition={{ duration: 0.3 }}
             className="glass-card p-8"
           >
+            {step === 0 && (
+              <div className="space-y-6">
+                <div className="text-center space-y-2">
+                  <h2 className="font-heading font-bold text-3xl text-text-primary leading-tight">
+                    Welcome to <span className="text-gradient">Pathly</span>
+                  </h2>
+                  <p className="text-text-muted text-sm leading-relaxed">
+                    Your AI-powered college admissions counselor. We&apos;ll help you build the strongest application possible — step by step.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {[
+                    {
+                      icon: (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                        </svg>
+                      ),
+                      title: "Profile Strength Score",
+                      desc: "See exactly where you stand and what to improve",
+                    },
+                    {
+                      icon: (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                          <path d="M6 12v5c3 3 9 3 12 0v-5" />
+                        </svg>
+                      ),
+                      title: "Personalized College List",
+                      desc: "AI-matched reach, target & safety schools based on your profile",
+                    },
+                    {
+                      icon: (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M8.56 2.9A7 7 0 0 1 19 9v4" />
+                          <path d="M19 13a7 7 0 1 1-13.48-2.71" />
+                          <circle cx="12" cy="13" r="3" />
+                        </svg>
+                      ),
+                      title: "Extracurricular Roadmaps",
+                      desc: "Week-by-week plans to build standout activities",
+                    },
+                    {
+                      icon: (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        </svg>
+                      ),
+                      title: "AI Counselor",
+                      desc: "24/7 guidance on any admissions question, tailored to you",
+                    },
+                    {
+                      icon: (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <line x1="16" x2="8" y1="13" y2="13" />
+                          <line x1="16" x2="8" y1="17" y2="17" />
+                          <line x1="10" x2="8" y1="9" y2="9" />
+                        </svg>
+                      ),
+                      title: "Essay Review & Scholarships",
+                      desc: "AI feedback on your personal statement + curated funding opportunities",
+                    },
+                  ].map((feat) => (
+                    <div key={feat.title} className="flex items-start gap-3 p-3 rounded-button bg-white/3 border border-white/8">
+                      <div className="w-8 h-8 rounded-lg bg-purple/15 border border-purple/20 flex items-center justify-center flex-shrink-0 text-purple mt-0.5">
+                        {feat.icon}
+                      </div>
+                      <div>
+                        <p className="text-text-primary text-sm font-medium">{feat.title}</p>
+                        <p className="text-text-muted text-xs mt-0.5 leading-relaxed">{feat.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-text-muted/60 text-xs text-center">
+                  Takes about 2 minutes to set up. You can edit everything later.
+                </p>
+              </div>
+            )}
+
             {step === 1 && (
               <div className="space-y-5">
                 <h2 className="font-heading font-bold text-2xl text-text-primary">Let&apos;s get to know you</h2>
@@ -299,12 +387,12 @@ export default function OnboardingPage() {
               )}
               <Button
                 variant="primary"
-                onClick={next}
+                onClick={step === 0 ? () => setStep(1) : next}
                 loading={loading}
                 className="ml-auto"
-                disabled={!canProceed(step, data)}
+                disabled={step > 0 && !canProceed(step, data)}
               >
-                {step === TOTAL_STEPS ? "Complete Setup" : "Continue"}
+                {step === 0 ? "Get started →" : step === TOTAL_STEPS ? "Complete Setup" : "Continue"}
               </Button>
             </div>
           </motion.div>
